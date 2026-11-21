@@ -3878,6 +3878,26 @@ void GCS_MAVLINK::handle_statustext(const mavlink_message_t &msg)
  */
 void GCS_MAVLINK::handle_named_value(const mavlink_message_t &msg) const
 {
+#if OSD_ENABLED
+    // Dedicated companion identity; not cryptographic authentication.
+    if (msg.sysid == 42 && msg.compid == 191) {
+        mavlink_named_value_float_t jt_packet;
+        mavlink_msg_named_value_float_decode(&msg, &jt_packet);
+        if (memcmp(jt_packet.name, "JT_FLOW", 7) == 0 && jt_packet.name[7] == 0) {
+            if (AP_OSD *jt_osd = AP::osd()) {
+                const float q = jt_packet.value;
+                if (q >= 0.0f && q <= 100.0f) {
+                    jt_osd->jt_flow_update(uint8_t(q + 0.5f));
+                }
+            }
+        }
+        if (memcmp(jt_packet.name, "JT_COMP", 7) == 0 && jt_packet.name[7] == 0) {
+            if (AP_OSD *jt_osd = AP::osd()) {
+                jt_osd->jt_comp_update(jt_packet.value >= 1.0f && jt_packet.value < 2.0f);
+            }
+        }
+    }
+#endif
 #if HAL_LOGGING_ENABLED
     auto *logger = AP_Logger::get_singleton();
     if (logger == nullptr) {
@@ -3987,6 +4007,59 @@ void GCS_MAVLINK::handle_set_gps_global_origin(const mavlink_message_t &msg)
  */
 void GCS_MAVLINK::handle_data_packet(const mavlink_message_t &msg)
 {
+#if OSD_ENABLED
+    // JTZero DATA96 text. Type 77 is private to this project, not MAVLink-assigned.
+    // Wire: "JT", version=1, line=1..5, session LE32, sequence LE32,
+    // text length 0..16, followed by exactly 16 bytes (29 bytes total).
+    if (msg.sysid == 42 && msg.compid == 191) {
+        mavlink_data96_t jt;
+        mavlink_msg_data96_decode(&msg, &jt);
+        if (jt.type != 77 && jt.type != 78 && jt.type != 79) {
+            // Not JTZero: preserve normal DATA96 processing (notably AP_Radio 42/43).
+        } else {
+        // JTZero VTX snapshot: DATA96 type 78, len=7:
+        // 'J','V',version=1,band=1..5,channel=1..8,power_mW LE16.
+        if (jt.type == 78 && jt.len == 7 &&
+            jt.data[0] == 'J' && jt.data[1] == 'V' && jt.data[2] == 1 &&
+            jt.data[3] >= 1 && jt.data[3] <= 5 &&
+            jt.data[4] >= 1 && jt.data[4] <= 8) {
+            if (AP_OSD *jt_osd = AP::osd()) {
+                jt_osd->jt_vtx_update(jt.data[3], jt.data[4],
+                                      uint16_t(jt.data[5]) | (uint16_t(jt.data[6]) << 8));
+            }
+        }
+        // JTZero universal VTX text: DATA96 type 79, same envelope as MSG1, slot 5.
+        if (jt.type == 79 && jt.len == 29 &&
+            jt.data[0] == 74 && jt.data[1] == 84 &&
+            jt.data[2] == 1 && jt.data[3] == 1 &&
+            jt.data[12] <= 16) {
+            uint32_t session = 0, sequence = 0;
+            for (uint8_t i = 0; i < 4; i++) {
+                session |= uint32_t(jt.data[4 + i]) << (8 * i);
+                sequence |= uint32_t(jt.data[8 + i]) << (8 * i);
+            }
+            if (AP_OSD *jt_osd = AP::osd()) {
+                jt_osd->jt_msg_update(5, session, sequence, &jt.data[13], jt.data[12]);
+            }
+        }
+        if (jt.type == 77 && jt.len == 29 &&
+            jt.data[0] == 'J' && jt.data[1] == 'T' &&
+            jt.data[2] == 1 && jt.data[3] >= 1 && jt.data[3] <= 5 &&
+            jt.data[12] <= 16) {
+            uint32_t session = 0, sequence = 0;
+            for (uint8_t i = 0; i < 4; i++) {
+                session |= uint32_t(jt.data[4 + i]) << (8 * i);
+                sequence |= uint32_t(jt.data[8 + i]) << (8 * i);
+            }
+            if (AP_OSD *jt_osd = AP::osd()) {
+                jt_osd->jt_msg_update(jt.data[3] - 1U, session, sequence,
+                                      &jt.data[13], jt.data[12]);
+            }
+        }
+        return;
+        }
+    }
+#endif
 #if AP_RADIO_ENABLED
     mavlink_data96_t m;
     mavlink_msg_data96_decode(&msg, &m);

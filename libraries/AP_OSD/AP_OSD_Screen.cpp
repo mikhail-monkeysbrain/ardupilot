@@ -1174,6 +1174,152 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info2[] = {
     AP_GROUPINFO("ESC_IDX", 10, AP_OSD_Screen, esc_index, 0),
 #endif
 
+    // @Param: COMP_EN
+    // @DisplayName: JTZero companion status
+    // @Description: Display JTZero companion readiness
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: COMP_X
+    // @DisplayName: JTZero companion X
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: COMP_Y
+    // @DisplayName: JTZero companion Y
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(comp, "COMP", 11, AP_OSD_Screen, AP_OSD_Setting),
+
+    // @Param: FLOW_EN
+    // @DisplayName: JTZero optical flow quality
+    // @Description: Quality received from companion; zero after timeout
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: FLOW_X
+    // @DisplayName: JTZero flow X
+    // @Description: Horizontal position
+    // @Range: 0 29
+    // @Param: FLOW_Y
+    // @DisplayName: JTZero flow Y
+    // @Description: Vertical position
+    // @Range: 0 15
+    // @Param: JTVTX_EN
+    // @DisplayName: JTZero VTX telemetry
+    // @Description: Companion-reported band, channel and power; never controls VTX
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: JTVTX_X
+    // @DisplayName: JTZero VTX horizontal position
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: JTVTX_Y
+    // @DisplayName: JTZero VTX vertical position
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(jt_vtx, "JTVTX", 14, AP_OSD_Screen, AP_OSD_Setting),
+
+    // @Param: JTMSG1_EN
+    // @DisplayName: JTZero text message 1
+    // @Description: Independent companion message line 1 (16 ASCII chars)
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: JTMSG1_X
+    // @DisplayName: Message 1 horizontal position
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: JTMSG1_Y
+    // @DisplayName: Message 1 vertical position
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(jt_msg1, "JTMSG1", 15, AP_OSD_Screen, AP_OSD_Setting),
+
+    // @Param: JTMSG2_EN
+    // @DisplayName: JTZero text message 2
+    // @Description: Independent companion message line 2 (16 ASCII chars)
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: JTMSG2_X
+    // @DisplayName: Message 2 horizontal position
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: JTMSG2_Y
+    // @DisplayName: Message 2 vertical position
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(jt_msg2, "JTMSG2", 16, AP_OSD_Screen, AP_OSD_Setting),
+
+    // @Param: JTMSG3_EN
+    // @DisplayName: JTZero text message 3
+    // @Description: Independent companion message line 3 (16 ASCII chars)
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: JTMSG3_X
+    // @DisplayName: Message 3 horizontal position
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: JTMSG3_Y
+    // @DisplayName: Message 3 vertical position
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(jt_msg3, "JTMSG3", 17, AP_OSD_Screen, AP_OSD_Setting),
+
+    // @Param: JTMSG4_EN
+    // @DisplayName: JTZero text message 4
+    // @Description: Independent companion message line 4 (16 ASCII chars)
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: JTMSG4_X
+    // @DisplayName: Message 4 horizontal position
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: JTMSG4_Y
+    // @DisplayName: Message 4 vertical position
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(jt_msg4, "JTMSG4", 18, AP_OSD_Screen, AP_OSD_Setting),
+
+    // @Param: JTMSG5_EN
+    // @DisplayName: JTZero text message 5
+    // @Description: Independent companion message line 5 (16 ASCII chars)
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: JTMSG5_X
+    // @DisplayName: Message 5 horizontal position
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: JTMSG5_Y
+    // @DisplayName: Message 5 vertical position
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(jt_msg5, "JTMSG5", 19, AP_OSD_Screen, AP_OSD_Setting),
+
+    // @Param: JTPILOT_EN
+    // @DisplayName: JTZero pilot field
+    // @Description: Persistent pilot name and number
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: JTPILOT_X
+    // @DisplayName: Pilot field horizontal position
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+    // @Param: JTPILOT_Y
+    // @DisplayName: Pilot field vertical position
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(jt_pilot, "JTPILOT", 20, AP_OSD_Screen, AP_OSD_Setting),
+
+
+
+
+
+    AP_SUBGROUPINFO(flow, "FLOW", 12, AP_OSD_Screen, AP_OSD_Setting),
+
+#if AP_RANGEFINDER_ENABLED
+    // @Param: RF_EN
+    // @DisplayName: JTZero rangefinder centimeters
+    // @Description: Downward rangefinder only; no barometer fallback
+    // @Values: 0:Disabled,1:Enabled
+    // @Param: RF_X
+    // @DisplayName: JTZero rangefinder X
+    // @Description: Horizontal position
+    // @Range: 0 29
+    // @Param: RF_Y
+    // @DisplayName: JTZero rangefinder Y
+    // @Description: Vertical position
+    // @Range: 0 15
+    AP_SUBGROUPINFO(rf, "RF", 13, AP_OSD_Screen, AP_OSD_Setting),
+#endif
+
     AP_GROUPEND
 };
 
@@ -2548,6 +2694,77 @@ void AP_OSD_Screen::draw_rngf(uint8_t x, uint8_t y)
 }
 #endif
 
+void AP_OSD_Screen::draw_comp(uint8_t x, uint8_t y)
+{
+    const uint32_t elapsed = osd->jt_comp_boot_elapsed_ms();
+    backend->write(x, y, false, "RPi:%lu.%lus", (unsigned long)(elapsed / 1000U), (unsigned long)((elapsed % 1000U) / 100U));
+}
+
+void AP_OSD_Screen::draw_flow(uint8_t x, uint8_t y)
+{
+    backend->write(x, y, false, "OF:%u", unsigned(osd->jt_flow_quality()));
+}
+
+#if AP_RANGEFINDER_ENABLED
+void AP_OSD_Screen::draw_rf(uint8_t x, uint8_t y)
+{
+    RangeFinder *rf_sensor = RangeFinder::get_singleton();
+    if (rf_sensor == nullptr || rf_sensor->status_orient(ROTATION_PITCH_270) < RangeFinder::Status::Good) {
+        backend->write(x, y, false, "RF:-");
+        return;
+    }
+    const float meters = rf_sensor->distance_orient(ROTATION_PITCH_270);
+    const int32_t centimeters = int32_t(meters * 100.0f + 0.5f);
+    backend->write(x, y, false, "%ld", long(centimeters));
+}
+#endif
+
+void AP_OSD_Screen::draw_jt_vtx(uint8_t x, uint8_t y)
+{
+    char vtx_text[17]{};
+    if (osd->jt_msg_read(5, vtx_text)) {
+        backend->write(x, y, false, "%s", vtx_text);
+        return;
+    }
+    uint16_t band = 0, channel = 0, vtx_power_mw = 0;
+    if (!osd->jt_vtx_read(band, channel, vtx_power_mw)) {
+        backend->write(x, y, false, "--:--");
+        return;
+    }
+    static const char bands[] = " ABEFR";
+    backend->write(x, y, false, "%c%u:%u", bands[band], unsigned(channel), unsigned(vtx_power_mw));
+}
+
+void AP_OSD_Screen::draw_jt_msg(uint8_t line, uint8_t x, uint8_t y)
+{
+    char text[17]{};
+    if (osd->jt_msg_read(line, text)) {
+        backend->write(x, y, false, "%s", text);
+    }
+}
+
+void AP_OSD_Screen::draw_jt_pilot(uint8_t x, uint8_t y)
+{
+    const int32_t packed[4] = {
+        osd->jt_pilot_part1.get(), osd->jt_pilot_part2.get(),
+        osd->jt_pilot_part3.get(), osd->jt_pilot_part4.get()
+    };
+    char name[13]{};
+    uint8_t n = 0;
+    for (uint8_t i = 0; i < 4; i++) {
+        const uint32_t word = uint32_t(packed[i]);
+        for (uint8_t j = 0; j < 3; j++) {
+            const uint8_t ch = uint8_t(word >> (8U * j));
+            if (ch == 0) { break; }
+            if (ch < 32 || ch > 126) { break; }
+            name[n++] = char(ch);
+        }
+        if (n != (i + 1U) * 3U) { break; }
+    }
+    name[n] = 0;
+    backend->write(x, y, false, "%s", name);
+}
+
 #define DRAW_SETTING(n) if (n.enabled) draw_ ## n(n.xpos, n.ypos)
 
 #if HAL_WITH_OSD_BITMAP || HAL_WITH_MSP_DISPLAYPORT
@@ -2638,6 +2855,19 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(climbeff);
     DRAW_SETTING(eff);
     DRAW_SETTING(callsign);
+    DRAW_SETTING(comp);
+    DRAW_SETTING(flow);
+    DRAW_SETTING(jt_vtx);
+    DRAW_SETTING(jt_pilot);
+    if (jt_msg1.enabled) { draw_jt_msg(0, jt_msg1.xpos, jt_msg1.ypos); }
+    if (jt_msg2.enabled) { draw_jt_msg(1, jt_msg2.xpos, jt_msg2.ypos); }
+    if (jt_msg3.enabled) { draw_jt_msg(2, jt_msg3.xpos, jt_msg3.ypos); }
+    if (jt_msg4.enabled) { draw_jt_msg(3, jt_msg4.xpos, jt_msg4.ypos); }
+    if (jt_msg5.enabled) { draw_jt_msg(4, jt_msg5.xpos, jt_msg5.ypos); }
+
+#if AP_RANGEFINDER_ENABLED
+    DRAW_SETTING(rf);
+#endif
     DRAW_SETTING(current2);
 
 #if AP_OSD_EXTENDED_LNK_STATS

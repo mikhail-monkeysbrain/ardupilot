@@ -160,6 +160,22 @@ define HAL_FRAME_TYPE_DEFAULT 12
 define HAL_OS_FATFS_IO 1
 
 # minimal drivers to reduce flash usage
-include ../include/minimize_fpv_osd.inc
+include jtzero_minimize.inc
 
 define DEFAULT_NTF_LED_TYPES 257
+
+# JTZERO_MAV_SENSOR_BACKENDS
+undef AP_OPTICALFLOW_ENABLED
+
+define AP_OPTICALFLOW_BACKEND_DEFAULT_ENABLED 0
+define AP_OPTICALFLOW_MAV_ENABLED 1
+
+# JT-Zero minimal MAVLink sensor configuration
+define AP_GPS_ENABLED 1
+define AP_COMPASS_ENABLED 1
+define AP_AIRSPEED_ENABLED 0
+define HAL_PARACHUTE_ENABLED 0
+define AP_RANGEFINDER_BACKEND_DEFAULT_ENABLED 0
+define AP_RANGEFINDER_MAVLINK_ENABLED 1
+define AP_MAVLINK_MSG_HIGHRES_IMU_ENABLED 1
+define AP_OPTICALFLOW_ENABLED 1

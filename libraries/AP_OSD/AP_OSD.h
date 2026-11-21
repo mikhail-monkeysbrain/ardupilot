@@ -20,6 +20,7 @@
 
 #include <AP_HAL/AP_HAL_Boards.h>
 #include <AP_HAL/Semaphores.h>
+#include <atomic>
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_ESC_Telem/AP_ESC_Telem.h>
@@ -232,6 +233,17 @@ private:
     AP_OSD_Setting hgt_abvterr{false, 23, 7};
     AP_OSD_Setting fence{false, 14, 9};
     AP_OSD_Setting rngf;
+    AP_OSD_Setting comp{false, 1, 5};
+    AP_OSD_Setting flow{false, 1, 6};
+    AP_OSD_Setting rf{false, 1, 7};
+    AP_OSD_Setting jt_vtx{false, 1, 8};
+    AP_OSD_Setting jt_msg1{false, 1, 9};
+    AP_OSD_Setting jt_msg2{false, 1, 10};
+    AP_OSD_Setting jt_msg3{false, 1, 11};
+    AP_OSD_Setting jt_msg4{false, 1, 12};
+    AP_OSD_Setting jt_msg5{false, 1, 13};
+    AP_OSD_Setting jt_pilot{false, 1, 14};
+
 #if HAL_PLUSCODE_ENABLE
     AP_OSD_Setting pluscode;
 #endif
@@ -337,6 +349,14 @@ private:
 #endif
 #if AP_RANGEFINDER_ENABLED
     void draw_rngf(uint8_t x, uint8_t y);
+#endif
+    void draw_comp(uint8_t x, uint8_t y);
+    void draw_flow(uint8_t x, uint8_t y);
+    void draw_jt_vtx(uint8_t x, uint8_t y);
+    void draw_jt_msg(uint8_t line, uint8_t x, uint8_t y);
+    void draw_jt_pilot(uint8_t x, uint8_t y);
+#if AP_RANGEFINDER_ENABLED
+    void draw_rf(uint8_t x, uint8_t y);
 #endif
 
 #if AP_OSD_EXTENDED_LNK_STATS
@@ -523,6 +543,17 @@ private:
 
 class AP_OSD
 {
+    struct JTTextLine {
+        std::atomic_flag writer = ATOMIC_FLAG_INIT;
+        std::atomic<uint32_t> version{0};
+        std::atomic<uint32_t> words[4]{};
+        std::atomic<uint32_t> session{0};
+        std::atomic<uint32_t> retired_session{0};
+        std::atomic<uint32_t> sequence{0};
+        std::atomic<uint32_t> updated{0};
+        std::atomic<uint8_t> length{0};
+    };
+
 public:
     friend class AP_OSD_Screen;
     friend class AP_MSP;
@@ -538,6 +569,142 @@ public:
     static AP_OSD *get_singleton()
     {
         return _singleton;
+    }
+
+    // JTZero readiness, updated by the configured MAVLink companion.
+    void jt_comp_update(bool ready) {
+        const uint32_t now = AP_HAL::millis();
+        uint32_t expected = 0;
+        _jt_comp_first_ms.compare_exchange_strong(expected, now + 1U, std::memory_order_relaxed);
+        _jt_comp_ready_ms.store(ready ? (now + 1U) : 0U, std::memory_order_relaxed);
+    }
+    uint32_t jt_comp_boot_elapsed_ms() const {
+        const uint32_t first = _jt_comp_first_ms.load(std::memory_order_relaxed);
+        return first == 0 ? AP_HAL::millis() : first - 1U;
+    }
+    bool jt_comp_ready() const {
+        const uint32_t last = _jt_comp_ready_ms.load(std::memory_order_relaxed);
+        return last != 0 && uint32_t(AP_HAL::millis() - (last - 1U)) < 3000U;
+    }
+
+    // Packed timestamp and quality: one atomic snapshot for the OSD thread.
+    void jt_flow_update(uint8_t quality) {
+        const uint32_t ticks = (AP_HAL::millis() / 4U) & 0x01FFFFFFU;
+        _jt_flow_state.store((ticks << 7) | uint32_t(quality > 100 ? 100 : quality), std::memory_order_relaxed);
+        _jt_flow_seen.store(true, std::memory_order_relaxed);
+    }
+    uint8_t jt_flow_quality() const {
+        if (!_jt_flow_seen.load(std::memory_order_relaxed)) { return 0; }
+        const uint32_t packed = _jt_flow_state.load(std::memory_order_relaxed);
+        const uint32_t now = (AP_HAL::millis() / 4U) & 0x01FFFFFFU;
+        const uint32_t age = (now - (packed >> 7)) & 0x01FFFFFFU;
+        return age < 750U ? uint8_t(packed & 0x7FU) : 0;
+    }
+
+    // JTZero VTX snapshot from one DATA96 packet; never controls VTX.
+    // Full 32-bit 100ms timestamp avoids the former 102.4-second wrap.
+    // Writer and reader use atomic sequence to keep payload/time coherent.
+    void jt_vtx_update(uint8_t band, uint8_t channel, uint16_t power_mw) {
+        if (band < 1 || band > 5 || channel < 1 || channel > 8) { return; }
+        const uint32_t packed = (uint32_t(band - 1U) << 19) |
+                                (uint32_t(channel - 1U) << 16) | power_mw;
+        _jt_vtx_version.fetch_add(1U, std::memory_order_acq_rel); // odd: writing
+        _jt_vtx_snapshot.store(packed, std::memory_order_relaxed);
+        _jt_vtx_stamp.store(AP_HAL::millis() / 100U, std::memory_order_relaxed);
+        _jt_vtx_seen.store(true, std::memory_order_relaxed);
+        _jt_vtx_version.fetch_add(1U, std::memory_order_release); // even: complete
+    }
+    bool jt_vtx_read(uint16_t &band, uint16_t &channel, uint16_t &power_mw) const {
+        if (!_jt_vtx_seen.load(std::memory_order_acquire)) { return false; }
+        uint32_t packed = 0;
+        uint32_t stamp = 0;
+        bool consistent = false;
+        for (uint8_t attempt = 0; attempt < 3; attempt++) {
+            const uint32_t before = _jt_vtx_version.load(std::memory_order_acquire);
+            if (before & 1U) { continue; }
+            packed = _jt_vtx_snapshot.load(std::memory_order_relaxed);
+            stamp = _jt_vtx_stamp.load(std::memory_order_relaxed);
+            const uint32_t after = _jt_vtx_version.load(std::memory_order_acquire);
+            if (before == after && !(after & 1U)) {
+                consistent = true;
+                break;
+            }
+        }
+        if (!consistent || uint32_t(AP_HAL::millis() / 100U - stamp) >= 30U) {
+            return false;
+        }
+        band = uint16_t(((packed >> 19) & 7U) + 1U);
+        channel = uint16_t(((packed >> 16) & 7U) + 1U);
+        power_mw = uint16_t(packed);
+        return true;
+    }
+
+    // JTZero DATA96 text. Each line is independent, ASCII, max 16 chars.
+    // A new session is accepted only after 5 seconds without a valid update.
+    // Updates from an old sequence within a session are rejected (RFC1982 style).
+    bool jt_msg_update(uint8_t line, uint32_t session, uint32_t sequence,
+                       const uint8_t *data, uint8_t len) {
+        if (line >= 6 || len > 16 || session == 0) { return false; }
+        JTTextLine &m = _jt_msg[line];
+        if (m.writer.test_and_set(std::memory_order_acquire)) { return false; }
+        const uint32_t now = AP_HAL::millis();
+        const uint32_t last = m.updated.load(std::memory_order_relaxed);
+        const uint32_t old_session = m.session.load(std::memory_order_relaxed);
+        const uint32_t retired_session = m.retired_session.load(std::memory_order_relaxed);
+        const uint32_t old_seq = m.sequence.load(std::memory_order_relaxed);
+        const bool fresh = last != 0 && uint32_t(now - (last - 1U)) < 5000U;
+        const bool same_session = session == old_session;
+        const bool newer_sequence = int32_t(sequence - old_seq) > 0;
+        const bool accept = (same_session && (last == 0 || newer_sequence)) ||
+                            (!same_session && !fresh && session != retired_session);
+        if (accept) {
+            m.version.fetch_add(1, std::memory_order_acq_rel); // odd: writing
+            if (!same_session && old_session != 0) {
+                m.retired_session.store(old_session, std::memory_order_relaxed);
+            }
+            for (uint8_t i = 0; i < 4; i++) {
+                uint32_t word = 0;
+                for (uint8_t j = 0; j < 4; j++) {
+                    const uint8_t pos = uint8_t(i * 4 + j);
+                    const uint8_t ch = pos < len ? data[pos] : 0;
+                    word |= uint32_t((ch >= 32 && ch <= 126) ? ch : ' ') << (j * 8);
+                }
+                m.words[i].store(word, std::memory_order_relaxed);
+            }
+            m.length.store(len, std::memory_order_relaxed);
+            m.session.store(session, std::memory_order_relaxed);
+            m.sequence.store(sequence, std::memory_order_relaxed);
+            m.updated.store(now + 1U, std::memory_order_relaxed);
+            m.version.fetch_add(1, std::memory_order_release); // even: committed
+        }
+        m.writer.clear(std::memory_order_release);
+        return accept;
+    }
+
+    bool jt_msg_read(uint8_t line, char (&out)[17]) const {
+        if (line >= 6) { return false; }
+        const JTTextLine &m = _jt_msg[line];
+        for (uint8_t attempt = 0; attempt < 2; attempt++) {
+            const uint32_t v1 = m.version.load(std::memory_order_acquire);
+            if (v1 & 1U) { continue; }
+            const uint32_t last = m.updated.load(std::memory_order_relaxed);
+            const uint8_t len = m.length.load(std::memory_order_relaxed);
+            for (uint8_t i = 0; i < 4; i++) {
+                const uint32_t word = m.words[i].load(std::memory_order_relaxed);
+                for (uint8_t j = 0; j < 4; j++) {
+                    out[i * 4 + j] = char((word >> (j * 8)) & 255U);
+                }
+            }
+            const uint32_t v2 = m.version.load(std::memory_order_acquire);
+            if (v1 == v2 && !(v2 & 1U)) {
+                if (last == 0 || uint32_t(AP_HAL::millis() - (last - 1U)) >= 5000U || len == 0 || len > 16) {
+                    return false;
+                }
+                out[len] = 0;
+                return true;
+            }
+        }
+        return false;
     }
 
     // init - perform required initialisation
@@ -622,6 +789,13 @@ public:
         UNITS_LAST=4,
     };
 
+    // Four 24-bit words, three printable ASCII bytes each. Each value <= 0x7e7e7e
+    // is exactly representable as a float32 Mission Planner parameter.
+    AP_Int32 jt_pilot_part1;
+    AP_Int32 jt_pilot_part2;
+    AP_Int32 jt_pilot_part3;
+    AP_Int32 jt_pilot_part4;
+    AP_Int16 jt_pilot_number;
     AP_Int8 units;
 
     AP_OSD_Screen screen[AP_OSD_NUM_DISPLAY_SCREENS];
@@ -694,6 +868,15 @@ public:
     }
 
 private:
+    std::atomic<uint32_t> _jt_comp_ready_ms{0};
+    std::atomic<uint32_t> _jt_comp_first_ms{0};
+    std::atomic<uint32_t> _jt_flow_state{0};
+    JTTextLine _jt_msg[6]{};
+    std::atomic<bool> _jt_flow_seen{false};
+    std::atomic<uint32_t> _jt_vtx_version{0};
+    std::atomic<uint32_t> _jt_vtx_snapshot{0};
+    std::atomic<uint32_t> _jt_vtx_stamp{0};
+    std::atomic<bool> _jt_vtx_seen{false};
     void osd_thread();
 #if OSD_ENABLED
     void update_osd();

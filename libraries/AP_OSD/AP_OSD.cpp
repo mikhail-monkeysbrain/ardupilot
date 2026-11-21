@@ -273,6 +273,41 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO("_TYPE2", 32, AP_OSD, osd_type2, 0),
 
+    // @Param: _JTPN1
+    // @DisplayName: JTZero pilot name bytes 1-3
+    // @Description: Three ASCII bytes encoded as b0 + 256*b1 + 65536*b2; range 0 to 8289918. Use helper to encode.
+    // @Range: 0 8289918
+    // @User: Advanced
+    AP_GROUPINFO("_JTPN1", 37, AP_OSD, jt_pilot_part1, 0),
+
+    // @Param: _JTPN2
+    // @DisplayName: JTZero pilot name bytes 4-6
+    // @Description: Three ASCII bytes encoded as b0 + 256*b1 + 65536*b2; range 0 to 8289918. Use helper to encode.
+    // @Range: 0 8289918
+    // @User: Advanced
+    AP_GROUPINFO("_JTPN2", 38, AP_OSD, jt_pilot_part2, 0),
+
+    // @Param: _JTPN3
+    // @DisplayName: JTZero pilot name bytes 7-9
+    // @Description: Three ASCII bytes encoded as b0 + 256*b1 + 65536*b2; range 0 to 8289918. Use helper to encode.
+    // @Range: 0 8289918
+    // @User: Advanced
+    AP_GROUPINFO("_JTPN3", 39, AP_OSD, jt_pilot_part3, 0),
+
+    // @Param: _JTPN4
+    // @DisplayName: JTZero pilot name bytes 10-12
+    // @Description: Three ASCII bytes encoded as b0 + 256*b1 + 65536*b2; range 0 to 8289918. Use helper to encode.
+    // @Range: 0 8289918
+    // @User: Advanced
+    AP_GROUPINFO("_JTPN4", 40, AP_OSD, jt_pilot_part4, 0),
+
+    // @Param: _JTID
+    // @DisplayName: JTZero pilot number
+    // @Description: Persistent pilot number shown in JTZero PILOT OSD field
+    // @Range: 0 32767
+    // @User: Standard
+    AP_GROUPINFO("_JTID", 41, AP_OSD, jt_pilot_number, 0),
+
     AP_GROUPEND
 };
 
