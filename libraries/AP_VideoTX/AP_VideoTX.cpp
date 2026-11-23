@@ -353,6 +353,11 @@ bool AP_VideoTX::load_jtv1_params()
     _jtv1_table = candidate;
     _jtv1_active = true;
     _frequency_mhz.set(candidate.frequency[_band.get()][_channel.get()]);
+    // The cached current frequency was captured before the custom table loaded.
+    // It may now identify a different band/channel. Treat it as unknown until
+    // a VTX backend reports its actual state, so set_defaults() cannot remap
+    // the selected band/channel using the stale pre-table frequency.
+    _current_frequency = 0;
     return true;
 }
 
