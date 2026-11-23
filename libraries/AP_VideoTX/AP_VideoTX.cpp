@@ -59,7 +59,7 @@ const AP_Param::GroupInfo AP_VideoTX::var_info[] = {
     // @Description: Video Transmitter Frequency. The frequency is derived from the setting of BAND and CHANNEL
     // @User: Standard
     // @ReadOnly: True
-    // @Range: 1000 6000
+    // @Range: 100 32767
     AP_GROUPINFO("FREQ",  5, AP_VideoTX, _frequency_mhz, 0),
 
     // @Param: OPTIONS
@@ -75,8 +75,9 @@ const AP_Param::GroupInfo AP_VideoTX::var_info[] = {
     // @Range: 25 1000
     AP_GROUPINFO("MAX_POWER", 7, AP_VideoTX, _max_power_mw, 800),
 
-    // Optional packed frequency overrides (bit31 enabled, bits20..16 band,
-    // bits15..13 channel, bits12..0 frequency MHz). 0 disables a slot.
+    // Optional packed frequency overrides: bit23 enabled, bits22..19 band,
+    // bits18..16 channel, bits15..0 frequency MHz. 0 disables a slot.
+    // Values are restricted to 24 bits for lossless MAVLink float parameters.
     AP_GROUPINFO("TBL1", 8, AP_VideoTX, _table_override[0], 0),
     AP_GROUPINFO("TBL2", 9, AP_VideoTX, _table_override[1], 0),
     AP_GROUPINFO("TBL3", 10, AP_VideoTX, _table_override[2], 0),
@@ -249,6 +250,9 @@ bool AP_VideoTX::activate_staged_jtv1()
     }
     _jtv1_table = _jtv1_staged;
     _jtv1_active = true;
+    // Keep the configured frequency aligned with the newly activated table.
+    // Do not save here: persistent activation requires a separate durable commit.
+    _frequency_mhz.set(_jtv1_table.frequency[_band.get()][_channel.get()]);
     _jtv1_staged_valid = false;
     return true;
 }
@@ -573,7 +577,8 @@ void AP_VideoTX::announce_vtx_settings() const
 {
     // Output a friendly message so the user knows the VTX has been detected
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "VTX: %s%d %dMHz, PWR: %dmW",
-        band_names[_band.get()], _channel.get() + 1, _frequency_mhz.get(),
+        (_band.get() >= 0 && _band.get() < MAX_BANDS) ? band_names[_band.get()] : "?",
+        _channel.get() + 1, _frequency_mhz.get(),
         has_option(VideoOptions::VTX_PITMODE) ? 0 : _power_mw.get());
 }
 
