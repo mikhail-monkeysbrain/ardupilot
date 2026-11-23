@@ -94,7 +94,11 @@ public:
 
     static const uint16_t VIDEO_CHANNELS[MAX_BANDS][VTX_MAX_CHANNELS];
 
-    static uint16_t get_frequency_mhz(uint8_t band, uint8_t channel) { return VIDEO_CHANNELS[band][channel]; }
+    // An invalid band/channel must never index outside the compiled-in table.
+    // Zero denotes an unavailable frequency; callers must not transmit it.
+    static uint16_t get_frequency_mhz(uint8_t band, uint8_t channel) {
+        return (band < MAX_BANDS && channel < VTX_MAX_CHANNELS) ? VIDEO_CHANNELS[band][channel] : 0;
+    }
     static bool get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& channel);
 
     void set_frequency_mhz(uint16_t freq) { _current_frequency = freq; }
