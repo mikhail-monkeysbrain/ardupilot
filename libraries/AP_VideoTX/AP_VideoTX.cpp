@@ -189,7 +189,7 @@ bool AP_VideoTX::init(void)
     return true;
 }
 
-uint16_t AP_VideoTX::get_frequency_mhz(uint8_t band, uint8_t channel)
+uint16_t AP_VideoTX::get_frequency_mhz(uint8_t band, uint8_t channel) const
 {
     if (band >= MAX_BANDS || channel >= VTX_MAX_CHANNELS) {
         return 0;
@@ -456,7 +456,10 @@ bool AP_VideoTX::have_params_changed() const
 // update the configured frequency to match the channel and band
 void AP_VideoTX::update_configured_frequency()
 {
-    _frequency_mhz.set_and_save(get_frequency_mhz(_band, _channel));
+    const uint16_t freq = get_frequency_mhz(_band, _channel);
+    if (freq != 0) {
+        _frequency_mhz.set_and_save(freq);
+    }
 }
 
 // update the configured channel and band to match the frequency
@@ -483,6 +486,10 @@ bool AP_VideoTX::set_defaults()
     // check that our current view of frequency matches band/channel
     // if not then force one to be correct
     uint16_t calced_freq = get_frequency_mhz(_current_band, _current_channel);
+    if (calced_freq == 0) {
+        // Do not propagate an invalid override to the VTX.
+        return false;
+    }
     if (_current_frequency != calced_freq) {
         if (_current_frequency > 0) {
             VideoBand band;
