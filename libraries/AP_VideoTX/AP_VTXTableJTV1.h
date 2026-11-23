@@ -74,7 +74,7 @@ inline bool decode(const uint8_t *data, size_t length, Table &out)
         for (uint8_t c = 0; c < MAX_CHANNELS; c++) {
             const uint16_t freq = read_u16(data + pos);
             pos += 2;
-            if ((freq != 0 && (freq < 1000 || freq > 6000)) ||
+            if ((freq != 0 && (freq < 100)) ||
                 (b >= candidate.bands && freq != 0)) {
                 return false;
             }
