@@ -343,12 +343,14 @@ void AP_Tramp::process_requests()
             AP_VideoTX& vtx = AP::vtx();
             // Config retries remain and min request period exceeded, check freq
             if (!is_race_lock_enabled() && vtx.update_frequency()) {
-                debug("Updating frequency to %uMhz", vtx.get_configured_frequency_mhz());
-                // Freq can be and needs to be updated, issue request
-                send_command('F', vtx.get_configured_frequency_mhz());
-
-                // Set flag
-                configUpdateRequired = true;
+                const uint16_t target_freq = vtx.has_active_jtv1() ?
+                    vtx.get_frequency_mhz(vtx.get_configured_band(), vtx.get_configured_channel()) :
+                    vtx.get_configured_frequency_mhz();
+                if (target_freq != 0) {
+                    debug("Updating frequency to %uMhz", target_freq);
+                    send_command('F', target_freq);
+                    configUpdateRequired = true;
+                }
             } else if (!is_race_lock_enabled() && vtx.update_power()) {
                 debug("Updating power to %umw\n", vtx.get_configured_power_mw());
                 // Power can be and needs to be updated, issue request
@@ -477,7 +479,12 @@ void AP_Tramp::update()
             } else {
                 vtx.update_configured_frequency();
             }
-            set_frequency(vtx.get_configured_frequency_mhz());
+            const uint16_t target_freq = vtx.has_active_jtv1() ?
+                vtx.get_frequency_mhz(vtx.get_configured_band(), vtx.get_configured_channel()) :
+                vtx.get_configured_frequency_mhz();
+            if (target_freq != 0) {
+                set_frequency(target_freq);
+            }
         }
         else if (vtx.update_power()) {
             retry_count = VTX_TRAMP_MAX_RETRIES;
