@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate persistent ArduPilot VTX parameters from Betaflight JSON/CLI.
 
-Two-phase import: import staging parameters first, verify readback, then import\nthe separate commit-marker file. Reboot after the second import.\nNever assume Mission Planner preserves row ordering or duplicate parameter names.
+Three-phase import: invalidate old CRC, import staging parameters and verify\nreadback, then import the separate commit marker and reboot.\nNever assume Mission Planner preserves parameter row ordering.
 Frequency-only in this version: custom power codes are explicitly rejected.
 """
 import argparse
@@ -42,9 +42,15 @@ def main():
     args = parser.parse_args()
     raw = args.source.read_text(encoding="utf-8-sig")
     table = normalize_json(json.loads(raw)) if args.source.suffix.lower() == ".json" else normalize_cli(raw)
-    lines = [f"{name},{value}" for name, value in parameters(table)]
-    args.output.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"Wrote {len(lines)} parameter assignments to {args.output}")
+    rows = parameters(table)
+    invalidate = args.output.with_name(args.output.stem + "_invalidate" + args.output.suffix)
+    commit = args.output.with_name(args.output.stem + "_commit" + args.output.suffix)
+    invalidate.write_text("VTX_TCRC,0\n", encoding="utf-8")
+    args.output.write_text("".join(f"{name},{value}\n" for name, value in rows), encoding="utf-8")
+    commit.write_text(f"VTX_TCRC,{checksum(table)}\n", encoding="utf-8")
+    print(f"1. Import {invalidate} to invalidate old table")
+    print(f"2. Import {args.output} ({len(rows)} parameters), verify all readbacks")
+    print(f"3. Import {commit} and reboot")
 
 
 if __name__ == "__main__":
