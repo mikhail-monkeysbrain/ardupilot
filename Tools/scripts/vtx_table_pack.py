@@ -61,7 +61,7 @@ def unpack_table(data):
     freqs = struct.unpack_from("<" + "H" * (BANDS * CHANNELS), data, pos)
     pos += BANDS * CHANNELS * 2
     power_records = [struct.unpack_from("<HH", data, pos + i * 4) for i in range(POWERS)]
-    if any(freq != 0 and not 1000 <= freq <= 6000 for freq in freqs):
+    if any(freq != 0 and not 100 <= freq <= 65535 for freq in freqs):
         raise ValueError("invalid frequency")
     if any(freqs[b * CHANNELS + c] for b in range(bands, BANDS) for c in range(CHANNELS)):
         raise ValueError("unused band has nonzero frequency")
