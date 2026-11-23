@@ -285,6 +285,74 @@ bool AP_VideoTX::activate_staged_jtv1()
     return true;
 }
 
+// The 24-bit checksum is exactly representable in float-based parameter tools.
+// It is a consistency marker, not a cryptographic integrity guarantee.
+static uint32_t vtx_param_checksum(const JTV1::Table &table)
+{
+    uint32_t hash = 2166136261U;
+    hash = (hash ^ table.bands) * 16777619U;
+    for (uint8_t b = 0; b < JTV1::MAX_BANDS; b++) {
+        for (uint8_t c = 0; c < JTV1::MAX_CHANNELS; c++) {
+            const uint16_t freq = table.frequency[b][c];
+            hash = (hash ^ (freq & 0xFFU)) * 16777619U;
+            hash = (hash ^ (freq >> 8)) * 16777619U;
+        }
+    }
+    return (hash & 0xFFFFFFU) | 1U;
+}
+
+bool AP_VideoTX::save_staged_jtv1_params()
+{
+    if (!_jtv1_staged_valid || hal.util->get_soft_armed() ||
+        _jtv1_staged.powers != 0) {
+        return false;
+    }
+    // Invalidate the previous table before writing any channel.
+    _persistent_crc.set_and_save(0);
+    for (uint8_t b = 0; b < JTV1::MAX_BANDS; b++) {
+        for (uint8_t c = 0; c < JTV1::MAX_CHANNELS; c++) {
+            _persistent_band[b].channel[c].set_and_save_ifchanged(
+                _jtv1_staged.frequency[b][c]);
+        }
+    }
+    _persistent_band_count.set_and_save(_jtv1_staged.bands);
+    _persistent_crc.set_and_save(vtx_param_checksum(_jtv1_staged));
+    return true;
+}
+
+bool AP_VideoTX::load_jtv1_params()
+{
+    const int8_t bands = _persistent_band_count.get();
+    if (bands < 1 || bands > JTV1::MAX_BANDS || _persistent_crc.get() == 0) {
+        return false;
+    }
+    JTV1::Table candidate{};
+    candidate.bands = uint8_t(bands);
+    candidate.channels = JTV1::MAX_CHANNELS;
+    for (uint8_t b = 0; b < JTV1::MAX_BANDS; b++) {
+        for (uint8_t c = 0; c < JTV1::MAX_CHANNELS; c++) {
+            const int16_t freq = _persistent_band[b].channel[c].get();
+            if (freq < 0 || (freq != 0 && freq < 100) ||
+                (b >= candidate.bands && freq != 0)) {
+                return false;
+            }
+            candidate.frequency[b][c] = uint16_t(freq);
+        }
+    }
+    if (uint32_t(_persistent_crc.get()) != vtx_param_checksum(candidate)) {
+        return false;
+    }
+    if (_band.get() < 0 || _band.get() >= candidate.bands ||
+        _channel.get() < 0 || _channel.get() >= JTV1::MAX_CHANNELS ||
+        candidate.frequency[_band.get()][_channel.get()] == 0) {
+        return false;
+    }
+    _jtv1_table = candidate;
+    _jtv1_active = true;
+    _frequency_mhz.set(candidate.frequency[_band.get()][_channel.get()]);
+    return true;
+}
+
 // set the current power
 void AP_VideoTX::set_configured_power_mw(uint16_t power)
 {
