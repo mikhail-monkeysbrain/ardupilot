@@ -20,8 +20,8 @@ def encode(band: int, channel: int, frequency: int) -> int:
         raise ValueError(f"channel must be 0..{MAX_CHANNELS - 1}")
     if not 1000 <= frequency <= 6000:
         raise ValueError("frequency_mhz must be 1000..6000")
-    value = 0x80000000 | (band << 16) | (channel << 13) | frequency
-    return value - 0x100000000  # AP_Int32 is signed
+    value = 0x800000 | (band << 19) | (channel << 16) | frequency
+    return value  # exact in MAVLink PARAM_SET float32 (<= 2**24)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
