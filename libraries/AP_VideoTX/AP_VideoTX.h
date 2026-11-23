@@ -24,6 +24,14 @@
 #define VTX_MAX_CHANNELS 8
 #define VTX_MAX_POWER_LEVELS 10
 
+// Eight persistent channel frequencies per band, stored in standard AP_Param
+// flash storage. Zero means an unavailable channel.
+class AP_VTXParamBand {
+public:
+    AP_Int16 channel[8];
+    static const AP_Param::GroupInfo var_info[];
+};
+
 class AP_VideoTX {
 public:
     AP_VideoTX();
@@ -104,6 +112,10 @@ public:
     bool stage_jtv1(const uint8_t *data, size_t length);
     bool activate_staged_jtv1();
     bool has_active_jtv1() const { return _jtv1_active; }
+    // Persist frequency-only JTV1 table through AP_Param, not raw flash pages.
+    // Caller must ensure no flight and a validated table.
+    bool save_staged_jtv1_params();
+    bool load_jtv1_params();
 
     void set_frequency_mhz(uint16_t freq) { _current_frequency = freq; }
     void set_configured_frequency_mhz(uint16_t freq) { _frequency_mhz.set_and_save_ifchanged(freq); }
@@ -187,6 +199,9 @@ public:
     static AP_VideoTX *singleton;
 
 private:
+    AP_VTXParamBand _persistent_band[11];
+    AP_Int8 _persistent_band_count;
+    AP_Int32 _persistent_crc;
     JTV1::Table _jtv1_table{};
     JTV1::Table _jtv1_staged{};
     bool _jtv1_active = false;
