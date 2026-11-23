@@ -31,6 +31,15 @@ class VtxPackTests(unittest.TestCase):
         self.assertEqual(decoded["frequencies"][2][4:], [0, 0, 0, 0])
         self.assertEqual(decoded["power_codes"], [1, 2, 3, 4])
 
+    def test_multiple_frequency_ranges_including_above_6ghz(self):
+        frequencies = [1200, 3500, 4400, 4900, 5800, 6200, 7200, 10000]
+        table = normalize_json({"bands": [{
+            "name": "MULTI", "letter": "M", "is_factory_band": False,
+            "frequencies": frequencies
+        }]})
+        decoded = unpack_table(pack_table(table))
+        self.assertEqual(decoded["frequencies"][0], frequencies)
+
     def test_crc_rejects_corruption(self):
         payload = bytearray(pack_table(self.table))
         payload[20] ^= 1
