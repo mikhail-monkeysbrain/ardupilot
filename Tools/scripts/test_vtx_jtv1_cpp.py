@@ -13,6 +13,7 @@ from vtx_table_pack import pack_table
 
 CPP = r"""
 #include <AP_VideoTX/AP_VTXTableJTV1.h>
+#include <AP_VideoTX/AP_VTXTableReceiver.h>
 #include <fstream>
 #include <iterator>
 #include <vector>
@@ -25,7 +26,17 @@ int main(int argc, char** argv) {
                                std::istreambuf_iterator<char>());
     JTV1::Table table{};
     table.bands = 99;
-    bool ok = JTV1::decode(bytes.data(), bytes.size(), table);
+    JTV1::Receiver receiver;
+    if (receiver.complete() || receiver.validate(table)) return 5;
+    // Reassemble out of order; include duplicate retransmission.
+    for (size_t end = bytes.size(); end != 0;) {
+        const size_t start = end > 31 ? end - 31 : 0;
+        if (!receiver.write(start, bytes.data() + start, end - start)) return 6;
+        if (!receiver.write(start, bytes.data() + start, end - start)) return 7;
+        end = start;
+    }
+    if (!receiver.complete()) return 8;
+    bool ok = receiver.validate(table);
     if (argv[2][0] == '1') {
         if (!ok || table.bands != 3 || table.channels != 8 || table.powers != 2 ||
             table.frequency[2][0] != 4020 || table.frequency[2][4] != 0 ||
