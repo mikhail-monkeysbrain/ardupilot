@@ -8,6 +8,7 @@ Output is a Mission Planner-compatible PARAM,VALUE file by default.
 import argparse
 import json
 from pathlib import Path
+from vtx_table_normalize import normalize_json
 
 MAX_OVERRIDES = 16
 MAX_BANDS = 11
@@ -24,8 +25,8 @@ def encode(band, channel, freq):
     return word  # exactly representable as MAVLink float32
 
 def convert(data):
-    table = data.get("vtxTable", data)
-    bands = table.get("bands")
+    table = normalize_json(data)
+    bands = table["bands"]
     if not isinstance(bands, list) or not bands:
         raise ValueError("vtxTable.bands must be a nonempty list")
     if len(bands) > MAX_BANDS:
@@ -43,7 +44,7 @@ def convert(data):
             entries.append(encode(bi, ci, freq))
     if len(entries) > MAX_OVERRIDES:
         raise ValueError(f"JSON has {len(entries)} frequencies but experimental firmware only supports {MAX_OVERRIDES}; refusing partial upload")
-    powers = table.get("powerlevels", [])
+    powers = table["powerlevels"]
     if powers:
         raise ValueError("Custom power levels are not implemented in firmware; refusing to discard JSON powerlevels")
     return {f"VTX_TBL{i + 1}": entries[i] if i < len(entries) else 0 for i in range(MAX_OVERRIDES)}
