@@ -96,9 +96,7 @@ public:
 
     // An invalid band/channel must never index outside the compiled-in table.
     // Zero denotes an unavailable frequency; callers must not transmit it.
-    static uint16_t get_frequency_mhz(uint8_t band, uint8_t channel) {
-        return (band < MAX_BANDS && channel < VTX_MAX_CHANNELS) ? VIDEO_CHANNELS[band][channel] : 0;
-    }
+    uint16_t get_frequency_mhz(uint8_t band, uint8_t channel) const;
     static bool get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& channel);
 
     void set_frequency_mhz(uint16_t freq) { _current_frequency = freq; }
@@ -183,6 +181,8 @@ public:
     static AP_VideoTX *singleton;
 
 private:
+    static constexpr uint8_t VTX_TABLE_OVERRIDE_COUNT = 16;
+    AP_Int32 _table_override[VTX_TABLE_OVERRIDE_COUNT];
     uint8_t find_current_power() const;
     // channel frequency
     AP_Int16 _frequency_mhz;
