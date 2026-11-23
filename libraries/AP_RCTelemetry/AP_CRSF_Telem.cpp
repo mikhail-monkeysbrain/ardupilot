@@ -722,7 +722,7 @@ void AP_CRSF_Telem::process_vtx_telem_frame(VTXTelemetryFrame* vtx)
 
     AP_VideoTX::VideoBand band;
     uint8_t channel;
-    if (AP_VideoTX::get_band_and_channel(vtx->frequency, band, channel)) {
+    if (apvtx.get_band_and_channel(vtx->frequency, band, channel)) {
         apvtx.set_band(uint8_t(band));
         apvtx.set_channel(channel);
     }
