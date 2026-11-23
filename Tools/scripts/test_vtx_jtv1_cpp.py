@@ -36,6 +36,9 @@ int main(int argc, char** argv) {
         end = start;
     }
     if (!receiver.complete()) return 8;
+    uint8_t conflicting = uint8_t(bytes[0] ^ 1U);
+    if (receiver.write(0, &conflicting, 1)) return 9;
+    if (receiver.write(JTV1::SIZE, bytes.data(), 1)) return 10;
     bool ok = receiver.validate(table);
     if (argv[2][0] == '1') {
         if (!ok || table.bands != 3 || table.channels != 8 || table.powers != 2 ||
