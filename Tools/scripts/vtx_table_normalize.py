@@ -6,7 +6,6 @@ are protocol codes, NOT necessarily milliwatts. Never infer RF power from them.
 """
 import argparse
 import json
-import re
 from pathlib import Path
 
 
@@ -36,6 +35,8 @@ def normalize_json(source):
     if not isinstance(source, dict):
         raise ValueError("root must be a JSON object")
     table = source.get("vtx_table", source.get("vtxTable", source))
+    if source.get("format") == "jtzero-vtx-table-v1":
+        table = source
     if not isinstance(table, dict):
         raise ValueError("VTX table must be an object")
     bands = table.get("bands_list", table.get("bands"))
