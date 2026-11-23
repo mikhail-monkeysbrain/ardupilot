@@ -204,7 +204,7 @@ uint16_t AP_VideoTX::get_frequency_mhz(uint8_t band, uint8_t channel) const
             ((entry >> 19) & 0x0FU) == band &&
             ((entry >> 16) & 0x07U) == channel) {
             const uint16_t freq = entry & 0xFFFFU;
-            return (freq >= 1000 && freq <= 6000) ? freq : 0;
+            return (freq >= 100) ? freq : 0;
         }
     }
     return VIDEO_CHANNELS[band][channel];
