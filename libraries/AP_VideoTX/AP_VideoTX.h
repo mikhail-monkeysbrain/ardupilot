@@ -19,6 +19,7 @@
 #if AP_VIDEOTX_ENABLED
 
 #include <AP_Param/AP_Param.h>
+#include "AP_VTXTableJTV1.h"
 
 #define VTX_MAX_CHANNELS 8
 #define VTX_MAX_POWER_LEVELS 10
@@ -97,7 +98,12 @@ public:
     // An invalid band/channel must never index outside the compiled-in table.
     // Zero denotes an unavailable frequency; callers must not transmit it.
     uint16_t get_frequency_mhz(uint8_t band, uint8_t channel) const;
-    static bool get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& channel);
+    bool get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& channel) const;
+
+    // Stage a fully validated JTV1 table in RAM. Not persisted or activated on VTX.
+    bool stage_jtv1(const uint8_t *data, size_t length);
+    bool activate_staged_jtv1();
+    bool has_active_jtv1() const { return _jtv1_active; }
 
     void set_frequency_mhz(uint16_t freq) { _current_frequency = freq; }
     void set_configured_frequency_mhz(uint16_t freq) { _frequency_mhz.set_and_save_ifchanged(freq); }
@@ -181,6 +187,10 @@ public:
     static AP_VideoTX *singleton;
 
 private:
+    JTV1::Table _jtv1_table{};
+    JTV1::Table _jtv1_staged{};
+    bool _jtv1_active = false;
+    bool _jtv1_staged_valid = false;
     static constexpr uint8_t VTX_TABLE_OVERRIDE_COUNT = 16;
     AP_Int32 _table_override[VTX_TABLE_OVERRIDE_COUNT];
     uint8_t find_current_power() const;
