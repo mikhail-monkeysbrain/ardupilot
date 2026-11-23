@@ -686,6 +686,30 @@ void AP_VideoTX::announce_vtx_settings() const
         has_option(VideoOptions::VTX_PITMODE) ? 0 : _power_mw.get());
 }
 
+// Step to the next usable frequency in the currently selected band.
+// AUX high advances, AUX low goes back, middle does not change the channel.
+// The VTX backend applies the updated VTX_CHANNEL/VTX_FREQ settings.
+void AP_VideoTX::change_channel(int8_t direction)
+{
+    if (!_enabled || (direction != 1 && direction != -1)) {
+        return;
+    }
+    const int8_t band = _band.get();
+    const int8_t channel = _channel.get();
+    if (band < 0 || band >= MAX_BANDS || channel < 0 || channel >= VTX_MAX_CHANNELS) {
+        return;
+    }
+    for (uint8_t offset = 1; offset < VTX_MAX_CHANNELS; offset++) {
+        const uint8_t next = uint8_t((channel + VTX_MAX_CHANNELS + direction * offset) % VTX_MAX_CHANNELS);
+        const uint16_t freq = get_frequency_mhz(uint8_t(band), next);
+        if (freq != 0) {
+            _channel.set_and_save_ifchanged(next);
+            _frequency_mhz.set_and_save_ifchanged(freq);
+            return;
+        }
+    }
+}
+
 // change the video power based on switch input
 // 6-pos range is in the middle of the available range
 void AP_VideoTX::change_power(int8_t position)
