@@ -1,0 +1,22 @@
+name: VTX JTV1 host validation
+
+on:
+  push:
+    branches:
+      - feature/vtx-table-flash-uart
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  jtv1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python and C++ compatibility tests
+        run: |
+          python3 -m unittest discover -s Tools/scripts -p 'test_vtx_*.py' -v
+      - name: Compile JTV1 header as C++11
+        run: |
+          printf '#include <AP_VideoTX/AP_VTXTableJTV1.h>\nint main() { JTV1::Table t{}; return t.bands; }\n' | g++ -std=c++11 -Wall -Wextra -Werror -I libraries -x c++ - -o /tmp/jtv1_header_test
+          /tmp/jtv1_header_test
