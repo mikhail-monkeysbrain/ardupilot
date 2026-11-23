@@ -12,10 +12,9 @@ class ParameterTableTests(unittest.TestCase):
                  for b in range(11)]
         table = normalize_json({"bands": bands})
         rows = parameters(table)
-        self.assertEqual(len(rows), 91)
-        self.assertEqual(rows[0], ("VTX_TCRC", 0))
-        self.assertEqual(rows[-2], ("VTX_TCNT", 11))
-        self.assertEqual(rows[-1], ("VTX_TCRC", checksum(table)))
+        self.assertEqual(len(rows), 89)
+        self.assertEqual(rows[-1], ("VTX_TCNT", 11))
+        self.assertFalse(any(name == "VTX_TCRC" for name, _ in rows))
         self.assertEqual(dict(rows)["VTX_TB10_C8"], 2207)
         self.assertTrue(0 < checksum(table) <= 0xffffff)
 
