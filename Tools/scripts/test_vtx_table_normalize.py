@@ -54,10 +54,17 @@ class NormalizerTests(unittest.TestCase):
         self.assertEqual(normalize_json(table), table)
 
     def test_reject_out_of_range_frequency(self):
+        # AP_VideoTX stores frequencies in signed AP_Int16 parameters.
+        # 9000 MHz is representable, while 32768 MHz is not.
         bad = {"vtx_table": {"bands_list": [
-            {"name": "A", "letter": "A", "is_factory_band": False, "frequencies": [9000]}]}}
+            {"name": "A", "letter": "A", "is_factory_band": False, "frequencies": [32768]}]}}
         with self.assertRaises(ValueError):
             normalize_json(bad)
+
+    def test_accept_representable_frequency_above_6ghz(self):
+        table = {"vtx_table": {"bands_list": [
+            {"name": "A", "letter": "A", "is_factory_band": False, "frequencies": [6200, 9000]}]}}
+        self.assertEqual(normalize_json(table)["bands"][0]["frequencies"], [6200, 9000])
 
     def test_reject_wrong_channel_count(self):
         with self.assertRaisesRegex(ValueError, "frequency count"):
