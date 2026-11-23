@@ -20,8 +20,8 @@ def encode(band, channel, freq):
         raise ValueError("band/channel index outside firmware range")
     if not (MIN_FREQ <= freq <= MAX_FREQ):
         raise ValueError(f"frequency {freq} MHz outside {MIN_FREQ}..{MAX_FREQ}")
-    word = 0x80000000 | (band << 16) | (channel << 13) | freq
-    return word - 0x100000000
+    word = 0x800000 | (band << 19) | (channel << 16) | freq
+    return word  # exactly representable as MAVLink float32
 
 def convert(data):
     table = data.get("vtxTable", data)
