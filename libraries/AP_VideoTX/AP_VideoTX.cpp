@@ -75,6 +75,25 @@ const AP_Param::GroupInfo AP_VideoTX::var_info[] = {
     // @Range: 25 1000
     AP_GROUPINFO("MAX_POWER", 7, AP_VideoTX, _max_power_mw, 800),
 
+    // Optional packed frequency overrides (bit31 enabled, bits20..16 band,
+    // bits15..13 channel, bits12..0 frequency MHz). 0 disables a slot.
+    AP_GROUPINFO("TBL1", 8, AP_VideoTX, _table_override[0], 0),
+    AP_GROUPINFO("TBL2", 9, AP_VideoTX, _table_override[1], 0),
+    AP_GROUPINFO("TBL3", 10, AP_VideoTX, _table_override[2], 0),
+    AP_GROUPINFO("TBL4", 11, AP_VideoTX, _table_override[3], 0),
+    AP_GROUPINFO("TBL5", 12, AP_VideoTX, _table_override[4], 0),
+    AP_GROUPINFO("TBL6", 13, AP_VideoTX, _table_override[5], 0),
+    AP_GROUPINFO("TBL7", 14, AP_VideoTX, _table_override[6], 0),
+    AP_GROUPINFO("TBL8", 15, AP_VideoTX, _table_override[7], 0),
+    AP_GROUPINFO("TBL9", 16, AP_VideoTX, _table_override[8], 0),
+    AP_GROUPINFO("TBL10", 17, AP_VideoTX, _table_override[9], 0),
+    AP_GROUPINFO("TBL11", 18, AP_VideoTX, _table_override[10], 0),
+    AP_GROUPINFO("TBL12", 19, AP_VideoTX, _table_override[11], 0),
+    AP_GROUPINFO("TBL13", 20, AP_VideoTX, _table_override[12], 0),
+    AP_GROUPINFO("TBL14", 21, AP_VideoTX, _table_override[13], 0),
+    AP_GROUPINFO("TBL15", 22, AP_VideoTX, _table_override[14], 0),
+    AP_GROUPINFO("TBL16", 23, AP_VideoTX, _table_override[15], 0),
+
     AP_GROUPEND
 };
 
@@ -170,11 +189,29 @@ bool AP_VideoTX::init(void)
     return true;
 }
 
+uint16_t AP_VideoTX::get_frequency_mhz(uint8_t band, uint8_t channel)
+{
+    if (band >= MAX_BANDS || channel >= VTX_MAX_CHANNELS) {
+        return 0;
+    }
+    // An override is an explicit mapping; absent overrides retain the factory table.
+    for (uint8_t i = 0; i < VTX_TABLE_OVERRIDE_COUNT; i++) {
+        const uint32_t entry = uint32_t(_table_override[i].get());
+        if ((entry & 0x80000000U) != 0 &&
+            ((entry >> 16) & 0x1FU) == band &&
+            ((entry >> 13) & 0x07U) == channel) {
+            const uint16_t freq = entry & 0x1FFFU;
+            return (freq >= 1000 && freq <= 6000) ? freq : 0;
+        }
+    }
+    return VIDEO_CHANNELS[band][channel];
+}
+
 bool AP_VideoTX::get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& channel)
 {
     for (uint8_t i = 0; i < AP_VideoTX::MAX_BANDS; i++) {
         for (uint8_t j = 0; j < VTX_MAX_CHANNELS; j++) {
-            if (VIDEO_CHANNELS[i][j] == freq) {
+            if (get_frequency_mhz(i, j) == freq) {
                 band = VideoBand(i);
                 channel = j;
                 return true;
