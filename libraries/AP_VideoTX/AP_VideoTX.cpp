@@ -304,7 +304,10 @@ static uint32_t vtx_param_checksum(const JTV1::Table &table)
 bool AP_VideoTX::save_staged_jtv1_params()
 {
     if (!_jtv1_staged_valid || hal.util->get_soft_armed() ||
-        _jtv1_staged.powers != 0) {
+        _jtv1_staged.powers != 0 ||
+        _band.get() < 0 || _band.get() >= _jtv1_staged.bands ||
+        _channel.get() < 0 || _channel.get() >= JTV1::MAX_CHANNELS ||
+        _jtv1_staged.frequency[_band.get()][_channel.get()] == 0) {
         return false;
     }
     // Invalidate the previous table before writing any channel.
