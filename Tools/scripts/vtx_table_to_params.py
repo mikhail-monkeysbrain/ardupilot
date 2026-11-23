@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Generate persistent ArduPilot VTX parameters from Betaflight JSON/CLI.
 
-Import the generated file with Mission Planner while disarmed, then reboot.
-VTX_TCRC is a commit marker: do not use partially imported tables.
+Two-phase import: import staging parameters first, verify readback, then import\nthe separate commit-marker file. Reboot after the second import.\nNever assume Mission Planner preserves row ordering or duplicate parameter names.
 Frequency-only in this version: custom power codes are explicitly rejected.
 """
 import argparse
@@ -26,13 +25,13 @@ def checksum(table):
 def parameters(table):
     if table["powerlevels"]:
         raise ValueError("custom power codes cannot yet be stored by AP_Param VTX table")
-    result = [("VTX_TCRC", 0)]
+    result = []
     for b in range(11):
         freqs = table["bands"][b]["frequencies"] if b < len(table["bands"]) else []
         for c in range(8):
             result.append((f"VTX_TB{b}_C{c + 1}", freqs[c] if c < len(freqs) else 0))
     result.append(("VTX_TCNT", len(table["bands"])))
-    result.append(("VTX_TCRC", checksum(table)))
+    # CRC is intentionally emitted in a separate file, never in this list.
     return result
 
 
