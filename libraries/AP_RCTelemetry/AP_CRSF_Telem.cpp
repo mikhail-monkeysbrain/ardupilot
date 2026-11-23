@@ -658,7 +658,7 @@ void AP_CRSF_Telem::process_vtx_frame(VTXFrame* vtx) {
 
     debug("VTX: SmartAudio: %d, Avail: %d, FreqMode: %d, Band: %d, Channel: %d, Freq: %d, PitMode: %d, Pwr: %d, Pit: %d",
         vtx->smart_audio_ver, vtx->is_vtx_available, vtx->is_in_user_frequency_mode,
-        vtx->band, vtx->channel, vtx->is_in_user_frequency_mode ? vtx->user_frequency : AP_VideoTX::get_frequency_mhz(vtx->band, vtx->channel),
+        vtx->band, vtx->channel, vtx->is_in_user_frequency_mode ? vtx->user_frequency : AP::vtx().get_frequency_mhz(vtx->band, vtx->channel),
         vtx->is_in_pitmode, vtx->power, vtx->pitmode);
     AP_VideoTX& apvtx = AP::vtx();
 
@@ -675,7 +675,7 @@ void AP_CRSF_Telem::process_vtx_frame(VTXFrame* vtx) {
     if (vtx->is_in_user_frequency_mode) {
         apvtx.set_frequency_mhz(vtx->user_frequency);
     } else {
-        apvtx.set_frequency_mhz(AP_VideoTX::get_frequency_mhz(vtx->band, vtx->channel));
+        apvtx.set_frequency_mhz(apvtx.get_frequency_mhz(vtx->band, vtx->channel));
     }
     // 14dBm (25mW), 20dBm (100mW), 26dBm (400mW), 29dBm (800mW)
     switch (vtx->power) {
