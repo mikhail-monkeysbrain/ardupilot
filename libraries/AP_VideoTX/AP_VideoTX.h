@@ -151,6 +151,8 @@ public:
     bool update_power() const;
     // change the video power based on switch input
     void change_power(int8_t position);
+    // Step through enabled channels of the selected band using an RC AUX switch.
+    void change_channel(int8_t direction);
     // get / set the frequency band
     void set_band(uint8_t band) { _current_band = band; }
     void set_configured_band(uint8_t band) { _band.set_and_save_ifchanged(band); }
