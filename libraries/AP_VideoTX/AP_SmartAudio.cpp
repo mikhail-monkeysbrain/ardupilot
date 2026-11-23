@@ -218,8 +218,17 @@ void AP_SmartAudio::update_vtx_params()
             set_operation_mode(mode);
         } else if (_vtx_freq_change_pending) {
             debug("update frequency");
-            if (_vtx_use_set_freq) {
-                set_frequency(vtx.get_configured_frequency_mhz(), false);
+            // Custom JTV1 band/channel indices are not necessarily the VTX's
+            // factory channel numbering. Use direct MHz for custom tables.
+            const uint16_t selected_freq = vtx.has_active_jtv1() ?
+                vtx.get_frequency_mhz(vtx.get_configured_band(), vtx.get_configured_channel()) :
+                vtx.get_configured_frequency_mhz();
+            if (selected_freq == 0) {
+                // Never transmit an unavailable channel as 0 MHz.
+                return;
+            }
+            if (_vtx_use_set_freq || vtx.has_active_jtv1()) {
+                set_frequency(selected_freq, false);
             } else {
                 set_channel(vtx.get_configured_band() * VTX_MAX_CHANNELS + vtx.get_configured_channel());
             }
