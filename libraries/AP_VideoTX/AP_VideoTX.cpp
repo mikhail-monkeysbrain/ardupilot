@@ -194,6 +194,9 @@ uint16_t AP_VideoTX::get_frequency_mhz(uint8_t band, uint8_t channel) const
     if (band >= MAX_BANDS || channel >= VTX_MAX_CHANNELS) {
         return 0;
     }
+    if (_jtv1_active) {
+        return band < _jtv1_table.bands ? _jtv1_table.frequency[band][channel] : 0;
+    }
     // An override is an explicit mapping; absent overrides retain the factory table.
     for (uint8_t i = 0; i < VTX_TABLE_OVERRIDE_COUNT; i++) {
         const uint32_t entry = uint32_t(_table_override[i].get());
@@ -207,8 +210,11 @@ uint16_t AP_VideoTX::get_frequency_mhz(uint8_t band, uint8_t channel) const
     return VIDEO_CHANNELS[band][channel];
 }
 
-bool AP_VideoTX::get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& channel)
+bool AP_VideoTX::get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& channel) const
 {
+    if (freq == 0) {
+        return false;
+    }
     for (uint8_t i = 0; i < AP_VideoTX::MAX_BANDS; i++) {
         for (uint8_t j = 0; j < VTX_MAX_CHANNELS; j++) {
             if (get_frequency_mhz(i, j) == freq) {
@@ -219,6 +225,32 @@ bool AP_VideoTX::get_band_and_channel(uint16_t freq, VideoBand& band, uint8_t& c
         }
     }
     return false;
+}
+
+bool AP_VideoTX::stage_jtv1(const uint8_t *data, size_t length)
+{
+    _jtv1_staged_valid = false;
+    _jtv1_staged_valid = JTV1::decode(data, length, _jtv1_staged);
+    return _jtv1_staged_valid;
+}
+
+bool AP_VideoTX::activate_staged_jtv1()
+{
+    // Never switch the frequency map in flight. The transport/persistence
+    // layer must also ensure this is only called after durable commit.
+    if (!_jtv1_staged_valid || hal.util->get_soft_armed()) {
+        return false;
+    }
+    // Do not activate a table that lacks the currently selected channel.
+    if (_band.get() < 0 || _band.get() >= _jtv1_staged.bands ||
+        _channel.get() < 0 || _channel.get() >= VTX_MAX_CHANNELS ||
+        _jtv1_staged.frequency[_band.get()][_channel.get()] == 0) {
+        return false;
+    }
+    _jtv1_table = _jtv1_staged;
+    _jtv1_active = true;
+    _jtv1_staged_valid = false;
+    return true;
 }
 
 // set the current power
