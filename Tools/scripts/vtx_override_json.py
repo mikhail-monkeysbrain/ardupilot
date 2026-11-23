@@ -13,8 +13,8 @@ from vtx_table_normalize import normalize_json
 MAX_OVERRIDES = 16
 MAX_BANDS = 11
 MAX_CHANNELS = 8
-MIN_FREQ = 1000
-MAX_FREQ = 6000
+MIN_FREQ = 100
+MAX_FREQ = 65535
 
 def encode(band, channel, freq):
     if not (0 <= band < MAX_BANDS and 0 <= channel < MAX_CHANNELS):
