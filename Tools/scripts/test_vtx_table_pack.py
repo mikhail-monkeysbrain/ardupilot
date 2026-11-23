@@ -40,6 +40,20 @@ class VtxPackTests(unittest.TestCase):
         decoded = unpack_table(pack_table(table))
         self.assertEqual(decoded["frequencies"][0], frequencies)
 
+    def test_signed_parameter_frequency_limit(self):
+        for freq in (100, 6200, 10000, 32767):
+            table = normalize_json({"bands": [{
+                "name": "X", "letter": "X", "is_factory_band": False,
+                "frequencies": [freq]
+            }]})
+            self.assertEqual(unpack_table(pack_table(table))["frequencies"][0][0], freq)
+        for freq in (99, 32768, 65535):
+            with self.assertRaises(ValueError):
+                normalize_json({"bands": [{
+                    "name": "X", "letter": "X", "is_factory_band": False,
+                    "frequencies": [freq]
+                }]})
+
     def test_crc_rejects_corruption(self):
         payload = bytearray(pack_table(self.table))
         payload[20] ^= 1
