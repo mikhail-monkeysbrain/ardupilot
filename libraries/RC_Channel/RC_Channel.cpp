@@ -197,6 +197,7 @@ const AP_Param::GroupInfo RC_Channel::var_info[] = {
     // @Values{Plane}: 91:Airspeed Ratio Calibration
     // @Values{Plane}: 92:FBWA Mode
     // @Values{Copter, Rover, Plane, Sub}: 94:VTX Power
+    // @Values{Copter, Rover, Plane, Sub}: 199:VTX Channel Step
     // @Values{Plane}: 95:FBWA taildragger takeoff mode
     // @Values{Plane}: 96:Trigger re-reading of mode switch
     // @Values{Rover}: 97:Windvane home heading direction offset
@@ -734,6 +735,7 @@ void RC_Channel::init_aux_function(const AUX_FUNC ch_option, const AuxSwitchPos 
 #endif
 #if AP_VIDEOTX_ENABLED
     case AUX_FUNC::VTX_POWER:
+    case AUX_FUNC::VTX_CHANNEL_STEP:
 #endif
 #if AP_OPTICALFLOW_CALIBRATOR_ENABLED
     case AUX_FUNC::OPTFLOW_CAL:
@@ -988,6 +990,17 @@ bool RC_Channel::read_aux()
             return true;
         }
         return false;
+    } else if (_option == AUX_FUNC::VTX_CHANNEL_STEP) {
+        AuxSwitchPos position;
+        if (!read_3pos_switch(position)) {
+            return false;
+        }
+        if (position == AuxSwitchPos::HIGH) {
+            AP::vtx().change_channel(1);
+        } else if (position == AuxSwitchPos::LOW) {
+            AP::vtx().change_channel(-1);
+        }
+        return true;
 #endif  // AP_VIDEOTX_ENABLED
     }
 
