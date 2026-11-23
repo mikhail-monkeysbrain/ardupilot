@@ -26,8 +26,8 @@ def _band(name, letter, factory, frequencies):
         raise ValueError("each band requires 1..8 channels")
     for freq in frequencies:
         _integer(freq, "frequency")
-        if freq != 0 and not 100 <= freq <= 65535:
-            raise ValueError(f"frequency {freq} MHz outside 100..65535")
+        if freq != 0 and not 100 <= freq <= 32767:
+            raise ValueError(f"frequency {freq} MHz outside 100..32767")
     return {"name": name, "letter": letter, "is_factory_band": factory, "frequencies": frequencies}
 
 
