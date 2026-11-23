@@ -197,10 +197,10 @@ uint16_t AP_VideoTX::get_frequency_mhz(uint8_t band, uint8_t channel) const
     // An override is an explicit mapping; absent overrides retain the factory table.
     for (uint8_t i = 0; i < VTX_TABLE_OVERRIDE_COUNT; i++) {
         const uint32_t entry = uint32_t(_table_override[i].get());
-        if ((entry & 0x80000000U) != 0 &&
-            ((entry >> 16) & 0x1FU) == band &&
-            ((entry >> 13) & 0x07U) == channel) {
-            const uint16_t freq = entry & 0x1FFFU;
+        if ((entry & 0x800000U) != 0 &&
+            ((entry >> 19) & 0x0FU) == band &&
+            ((entry >> 16) & 0x07U) == channel) {
+            const uint16_t freq = entry & 0xFFFFU;
             return (freq >= 1000 && freq <= 6000) ? freq : 0;
         }
     }
