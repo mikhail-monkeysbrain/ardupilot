@@ -26,6 +26,18 @@ extern const AP_HAL::HAL& hal;
 
 AP_VideoTX *AP_VideoTX::singleton;
 
+const AP_Param::GroupInfo AP_VTXParamBand::var_info[] = {
+    AP_GROUPINFO("C1", 1, AP_VTXParamBand, channel[0], 0),
+    AP_GROUPINFO("C2", 2, AP_VTXParamBand, channel[1], 0),
+    AP_GROUPINFO("C3", 3, AP_VTXParamBand, channel[2], 0),
+    AP_GROUPINFO("C4", 4, AP_VTXParamBand, channel[3], 0),
+    AP_GROUPINFO("C5", 5, AP_VTXParamBand, channel[4], 0),
+    AP_GROUPINFO("C6", 6, AP_VTXParamBand, channel[5], 0),
+    AP_GROUPINFO("C7", 7, AP_VTXParamBand, channel[6], 0),
+    AP_GROUPINFO("C8", 8, AP_VTXParamBand, channel[7], 0),
+    AP_GROUPEND
+};
+
 const AP_Param::GroupInfo AP_VideoTX::var_info[] = {
 
     // @Param: ENABLE
@@ -95,6 +107,20 @@ const AP_Param::GroupInfo AP_VideoTX::var_info[] = {
     AP_GROUPINFO("TBL15", 22, AP_VideoTX, _table_override[14], 0),
     AP_GROUPINFO("TBL16", 23, AP_VideoTX, _table_override[15], 0),
 
+    // Complete persistent frequency table, standard AP_Param storage.
+    AP_GROUPINFO("TCNT", 24, AP_VideoTX, _persistent_band_count, 0),
+    AP_GROUPINFO("TCRC", 25, AP_VideoTX, _persistent_crc, 0),
+    AP_SUBGROUPINFO(_persistent_band[0], "TB0_", 26, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[1], "TB1_", 27, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[2], "TB2_", 28, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[3], "TB3_", 29, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[4], "TB4_", 30, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[5], "TB5_", 31, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[6], "TB6_", 32, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[7], "TB7_", 33, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[8], "TB8_", 34, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[9], "TB9_", 35, AP_VideoTX, AP_VTXParamBand),
+    AP_SUBGROUPINFO(_persistent_band[10], "TB10_", 36, AP_VideoTX, AP_VTXParamBand),
     AP_GROUPEND
 };
 
@@ -186,6 +212,8 @@ bool AP_VideoTX::init(void)
     _current_options = _options;
     _current_enabled = _enabled;
     _initialized = true;
+    // Only a fully committed and checksum-verified parameter table is used.
+    load_jtv1_params();
 
     return true;
 }
