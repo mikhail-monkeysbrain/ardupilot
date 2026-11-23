@@ -40,6 +40,20 @@ class VtxJsonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "power levels"):
             convert(data)
 
+    def test_betaflight_underscore_schema(self):
+        data = {"vtx_table": {"bands_list": [
+            {"name": "BAND_A", "letter": "A", "is_factory_band": False,
+             "frequencies": [3700, 3720]}]}}
+        params = convert(data)
+        self.assertEqual(params["VTX_TBL1"], encode(0, 0, 3700))
+        self.assertEqual(params["VTX_TBL2"], encode(0, 1, 3720))
+
+    def test_canonical_schema(self):
+        data = {"format": "jtzero-vtx-table-v1", "bands": [
+            {"name": "BAND_A", "letter": "A", "is_factory_band": False,
+             "frequencies": [3700]}], "powerlevels": []}
+        self.assertEqual(convert(data)["VTX_TBL1"], encode(0, 0, 3700))
+
     def test_reject_invalid_frequency(self):
         data = {"vtxTable": {"bands": [{"frequencies": [999]}]}}
         with self.assertRaises(ValueError):
