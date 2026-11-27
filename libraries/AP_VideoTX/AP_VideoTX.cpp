@@ -722,7 +722,7 @@ void AP_VideoTX::update_configured_frequency()
 {
     const uint16_t freq = get_frequency_mhz(_band, _channel);
     if (freq != 0) {
-        _frequency_mhz.set_and_save(freq);
+        _frequency_mhz.set_and_save_ifchanged(freq);
     }
 }
 

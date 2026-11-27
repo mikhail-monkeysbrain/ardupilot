@@ -664,7 +664,7 @@ void AP_CRSF_Telem::process_vtx_frame(VTXFrame* vtx) {
 
     // the user may have a VTX connected but not want AP to control it
     // (for instance because they are using myVTX on the transmitter)
-    if (!apvtx.get_enabled()) {
+    if (!apvtx.get_enabled() || apvtx.has_active_jtv1() || apvtx.custom_power_requested()) {
         return;
     }
 
@@ -712,7 +712,7 @@ void AP_CRSF_Telem::process_vtx_telem_frame(VTXTelemetryFrame* vtx)
 
     AP_VideoTX& apvtx = AP::vtx();
 
-    if (!apvtx.get_enabled()) {
+    if (!apvtx.get_enabled() || apvtx.has_active_jtv1() || apvtx.custom_power_requested()) {
         return;
     }
 
@@ -903,6 +903,12 @@ void AP_CRSF_Telem::update_vtx_params()
     AP_VideoTX& vtx = AP::vtx();
 
     // This function does ugly things with the vtx parameters which will upset other providers
+    if (vtx.has_active_jtv1() || vtx.custom_power_requested()) {
+        _vtx_power_change_pending = false;
+        _vtx_freq_change_pending = false;
+        _vtx_options_change_pending = false;
+        return;
+    }
     if (!vtx.get_enabled() || !vtx.is_provider_enabled(AP_VideoTX::VTXType::CRSF)) {
         return;
     }
