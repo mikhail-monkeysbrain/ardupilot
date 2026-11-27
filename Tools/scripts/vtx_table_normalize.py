@@ -18,8 +18,8 @@ def _integer(value, field):
 def _band(name, letter, factory, frequencies):
     if not isinstance(name, str) or not name.strip():
         raise ValueError("band name required")
-    if not isinstance(letter, str) or len(letter) != 1:
-        raise ValueError("band letter must be one character")
+    if not isinstance(letter, str) or len(letter) > 1:
+        raise ValueError("band letter must contain at most one character")
     if not isinstance(factory, bool):
         raise ValueError("factory flag must be boolean")
     if not isinstance(frequencies, list) or not 1 <= len(frequencies) <= 8:
@@ -59,7 +59,7 @@ def normalize_json(source):
         value = _integer(p.get("value"), "power code")
         if not 0 <= value <= 65535:
             raise ValueError("power code out of range")
-        out_powers.append({"value": value, "label": p["label"]})
+        out_powers.append({"value": value, "label": p["label"].strip()})
     return {"format": "jtzero-vtx-table-v1", "bands": out_bands, "powerlevels": out_powers}
 
 
