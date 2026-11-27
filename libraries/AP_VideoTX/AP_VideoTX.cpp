@@ -214,7 +214,7 @@ bool AP_VideoTX::load_custom_power_table()
     _custom_power_boot_requested = _power_table_count.get() != 0;
     _custom_power_boot_crc = 0;
     _custom_power_valid = false;
-    _custom_power_confirmed = -1;
+    _custom_power_confirmation.store(0, std::memory_order_relaxed);
     _custom_power_table = {};
     const int32_t count = _power_table_count.get();
     const int32_t type = _power_table_type.get();
@@ -654,23 +654,39 @@ bool AP_VideoTX::custom_power_wire(JTPower::Protocol protocol, uint16_t &wire) c
 void AP_VideoTX::confirm_custom_power(JTPower::Protocol protocol, uint16_t code)
 {
     if (custom_power_requested() && custom_power_valid() && _custom_power_table.protocol == protocol) {
-        _custom_power_confirmed = JTPower::find_code(_custom_power_table, code);
+        const int8_t index = JTPower::find_code(_custom_power_table, code);
+        const uint32_t ticks = AP_HAL::millis() / 100U;
+        const uint32_t packed = index < 0 ? 0U : (ticks << 4U) | uint32_t(index + 1);
+        _custom_power_confirmation.store(packed, std::memory_order_relaxed);
     }
+}
+
+int8_t AP_VideoTX::confirmed_custom_power() const
+{
+    const uint32_t packed = _custom_power_confirmation.load(std::memory_order_relaxed);
+    const uint32_t id = packed & 15U;
+    const uint32_t now = AP_HAL::millis() / 100U;
+    const uint32_t age = (now - (packed >> 4U)) & 0x0FFFFFFFU;
+    if (id == 0 || id > _custom_power_table.count || age >= 50U) {
+        return -1;
+    }
+    return int8_t(id - 1U);
 }
 
 bool AP_VideoTX::get_custom_power_label(char (&out)[5]) const
 {
     out[0] = 0;
-    if (!custom_power_requested() || !custom_power_valid() || _custom_power_confirmed < 0 || _custom_power_confirmed >= _custom_power_table.count) {
+    const int8_t confirmed = confirmed_custom_power();
+    if (!_enabled || !custom_power_requested() || !custom_power_valid() || confirmed < 0) {
         return false;
     }
-    return JTPower::decode_label(_custom_power_table.levels[_custom_power_confirmed].label, out);
+    return JTPower::decode_label(_custom_power_table.levels[confirmed].label, out);
 }
 
 bool AP_VideoTX::custom_power_pending(JTPower::Protocol protocol) const
 {
     uint16_t wire;
-    return _enabled && _defaults_set && !get_pitmode() && !get_configured_pitmode() && custom_power_wire(protocol, wire) && _custom_power_confirmed != _power_table_index.get();
+    return _enabled && _defaults_set && !get_pitmode() && !get_configured_pitmode() && custom_power_wire(protocol, wire) && confirmed_custom_power() != _power_table_index.get();
 }
 
 bool AP_VideoTX::update_power() const {

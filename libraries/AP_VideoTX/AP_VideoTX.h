@@ -19,6 +19,7 @@
 #if AP_VIDEOTX_ENABLED
 
 #include <AP_Param/AP_Param.h>
+#include <atomic>
 #include "AP_VTXTableJTV1.h"
 #include "AP_VTXPowerTable.h"
 
@@ -221,7 +222,8 @@ private:
     bool _custom_power_valid = false;
     bool _custom_power_boot_requested = false;
     uint32_t _custom_power_boot_crc = 0;
-    int8_t _custom_power_confirmed = -1;
+    std::atomic<uint32_t> _custom_power_confirmation{0};
+    int8_t confirmed_custom_power() const;
     JTV1::Table _jtv1_table{};
     JTV1::Table _jtv1_staged{};
     bool _jtv1_active = false;
