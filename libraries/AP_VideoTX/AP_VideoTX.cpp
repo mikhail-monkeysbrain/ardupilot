@@ -121,6 +121,32 @@ const AP_Param::GroupInfo AP_VideoTX::var_info[] = {
     AP_SUBGROUPINFO(_persistent_band[8], "TB8_", 34, AP_VideoTX, AP_VTXParamBand),
     AP_SUBGROUPINFO(_persistent_band[9], "TB9_", 35, AP_VideoTX, AP_VTXParamBand),
     AP_SUBGROUPINFO(_persistent_band[10], "TB10_", 36, AP_VideoTX, AP_VTXParamBand),
+
+    // Independent custom VTX power table.
+    AP_GROUPINFO("PCNT", 37, AP_VideoTX, _power_table_count, 0),
+    AP_GROUPINFO("PTYPE", 38, AP_VideoTX, _power_table_type, 0),
+    AP_GROUPINFO("PIDX", 39, AP_VideoTX, _power_table_index, 0),
+    AP_GROUPINFO("PCRC", 40, AP_VideoTX, _power_table_crc, 0),
+    AP_GROUPINFO("PC1", 41, AP_VideoTX, _power_table_codes[0], 0),
+    AP_GROUPINFO("PC2", 42, AP_VideoTX, _power_table_codes[1], 0),
+    AP_GROUPINFO("PC3", 43, AP_VideoTX, _power_table_codes[2], 0),
+    AP_GROUPINFO("PC4", 44, AP_VideoTX, _power_table_codes[3], 0),
+    AP_GROUPINFO("PC5", 45, AP_VideoTX, _power_table_codes[4], 0),
+    AP_GROUPINFO("PC6", 46, AP_VideoTX, _power_table_codes[5], 0),
+    AP_GROUPINFO("PC7", 47, AP_VideoTX, _power_table_codes[6], 0),
+    AP_GROUPINFO("PC8", 48, AP_VideoTX, _power_table_codes[7], 0),
+    AP_GROUPINFO("PC9", 49, AP_VideoTX, _power_table_codes[8], 0),
+    AP_GROUPINFO("PC10", 50, AP_VideoTX, _power_table_codes[9], 0),
+    AP_GROUPINFO("PL1", 51, AP_VideoTX, _power_table_labels[0], 0),
+    AP_GROUPINFO("PL2", 52, AP_VideoTX, _power_table_labels[1], 0),
+    AP_GROUPINFO("PL3", 53, AP_VideoTX, _power_table_labels[2], 0),
+    AP_GROUPINFO("PL4", 54, AP_VideoTX, _power_table_labels[3], 0),
+    AP_GROUPINFO("PL5", 55, AP_VideoTX, _power_table_labels[4], 0),
+    AP_GROUPINFO("PL6", 56, AP_VideoTX, _power_table_labels[5], 0),
+    AP_GROUPINFO("PL7", 57, AP_VideoTX, _power_table_labels[6], 0),
+    AP_GROUPINFO("PL8", 58, AP_VideoTX, _power_table_labels[7], 0),
+    AP_GROUPINFO("PL9", 59, AP_VideoTX, _power_table_labels[8], 0),
+    AP_GROUPINFO("PL10", 60, AP_VideoTX, _power_table_labels[9], 0),
     AP_GROUPEND
 };
 
@@ -183,6 +209,40 @@ AP_VideoTX::~AP_VideoTX(void)
     singleton = nullptr;
 }
 
+bool AP_VideoTX::load_custom_power_table()
+{
+    _custom_power_valid = false;
+    _custom_power_confirmed = -1;
+    _custom_power_table = {};
+    const int32_t count = _power_table_count.get();
+    const int32_t type = _power_table_type.get();
+    const int32_t crc = _power_table_crc.get();
+    const int32_t index = _power_table_index.get();
+    if (count < 1 || count > JTPower::MAX_LEVELS ||
+        type < 1 || type > 4 || index < 0 || index >= count ||
+        crc <= 0 || crc > 0xFFFFFF) {
+        return false;
+    }
+    JTPower::Table candidate{};
+    candidate.protocol = JTPower::Protocol(type);
+    candidate.count = uint8_t(count);
+    for (uint8_t i = 0; i < JTPower::MAX_LEVELS; i++) {
+        const int32_t code = _power_table_codes[i].get();
+        const int32_t label = _power_table_labels[i].get();
+        if (code < 0 || code > 65535 || label < 0 || label > 0xFFFFFF ||
+            (i >= count && (code != 0 || label != 0))) {
+            return false;
+        }
+        candidate.levels[i] = {uint16_t(code), uint32_t(label)};
+    }
+    if (!JTPower::validate(candidate) || JTPower::checksum(candidate) != uint32_t(crc)) {
+        return false;
+    }
+    _custom_power_table = candidate;
+    _custom_power_valid = true;
+    return true;
+}
+
 bool AP_VideoTX::init(void)
 {
     if (_initialized) {
@@ -214,6 +274,7 @@ bool AP_VideoTX::init(void)
     _initialized = true;
     // Only a fully committed and checksum-verified parameter table is used.
     load_jtv1_params();
+    load_custom_power_table();
 
     return true;
 }

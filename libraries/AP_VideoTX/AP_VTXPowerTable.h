@@ -82,4 +82,27 @@ inline bool encode(const Table &table, uint8_t index, uint16_t &wire)
     return true;
 }
 
+inline uint32_t checksum(const Table &table)
+{
+    if (!validate(table)) {
+        return 0;
+    }
+    uint32_t h = 2166136261U;
+    const auto add = [&h](uint8_t byte) {
+        h = (h ^ byte) * 16777619U;
+    };
+    add(uint8_t(table.protocol));
+    add(table.count);
+    for (uint8_t i = 0; i < MAX_LEVELS; i++) {
+        const uint16_t code = i < table.count ? table.levels[i].code : 0;
+        const uint32_t label = i < table.count ? table.levels[i].label : 0;
+        add(uint8_t(code));
+        add(uint8_t(code >> 8));
+        add(uint8_t(label));
+        add(uint8_t(label >> 8));
+        add(uint8_t(label >> 16));
+    }
+    return (h & 0xFFFFFFU) | 1U;
+}
+
 } // namespace JTPower

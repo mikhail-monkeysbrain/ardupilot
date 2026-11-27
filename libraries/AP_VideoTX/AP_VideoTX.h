@@ -20,6 +20,7 @@
 
 #include <AP_Param/AP_Param.h>
 #include "AP_VTXTableJTV1.h"
+#include "AP_VTXPowerTable.h"
 
 #define VTX_MAX_CHANNELS 8
 #define VTX_MAX_POWER_LEVELS 10
@@ -116,6 +117,9 @@ public:
     // Caller must ensure no flight and a validated table.
     bool save_staged_jtv1_params();
     bool load_jtv1_params();
+    bool load_custom_power_table();
+    bool custom_power_requested() const { return _power_table_count.get() != 0; }
+    bool custom_power_valid() const { return _custom_power_valid; }
 
     void set_frequency_mhz(uint16_t freq) { _current_frequency = freq; }
     void set_configured_frequency_mhz(uint16_t freq) { _frequency_mhz.set_and_save_ifchanged(freq); }
@@ -202,6 +206,16 @@ private:
     AP_VTXParamBand _persistent_band[11];
     AP_Int8 _persistent_band_count;
     AP_Int32 _persistent_crc;
+
+    AP_Int8 _power_table_count;
+    AP_Int8 _power_table_type;
+    AP_Int8 _power_table_index;
+    AP_Int32 _power_table_crc;
+    AP_Int32 _power_table_codes[JTPower::MAX_LEVELS];
+    AP_Int32 _power_table_labels[JTPower::MAX_LEVELS];
+    JTPower::Table _custom_power_table{};
+    bool _custom_power_valid = false;
+    int8_t _custom_power_confirmed = -1;
     JTV1::Table _jtv1_table{};
     JTV1::Table _jtv1_staged{};
     bool _jtv1_active = false;
