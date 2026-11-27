@@ -24,19 +24,19 @@ class VtxJsonTests(unittest.TestCase):
                 self.assertEqual(value & 0xFFFF, 5800)
 
     def test_single_band(self):
-        data = {"vtxTable": {"bands": [{"frequencies": [5800, 5820]}]}}
+        data = {"vtxTable": {"bands": [{"name": "BAND_A", "letter": "A", "frequencies": [5800, 5820]}]}}
         result = convert(data)
         self.assertEqual(result["VTX_TBL1"], encode(0, 0, 5800))
         self.assertEqual(result["VTX_TBL2"], encode(0, 1, 5820))
         self.assertEqual(result["VTX_TBL3"], 0)
 
     def test_refuse_partial_full_table(self):
-        data = {"vtxTable": {"bands": [{"frequencies": [5800] * 8}] * 3}}
+        data = {"vtxTable": {"bands": [{"name": "BAND_A", "letter": "A", "frequencies": [5800] * 8}] * 3}}
         with self.assertRaisesRegex(ValueError, "only supports 16"):
             convert(data)
 
     def test_refuse_unsupported_power_levels(self):
-        data = {"vtxTable": {"bands": [{"frequencies": [5800]}], "powerlevels": [{"value": 25}]}}
+        data = {"vtxTable": {"bands": [{"name": "BAND_A", "letter": "A", "frequencies": [5800]}], "powerlevels": [{"value": 25, "label": "25"}]}}
         with self.assertRaisesRegex(ValueError, "power levels"):
             convert(data)
 
@@ -55,7 +55,7 @@ class VtxJsonTests(unittest.TestCase):
         self.assertEqual(convert(data)["VTX_TBL1"], encode(0, 0, 3700))
 
     def test_reject_invalid_frequency(self):
-        data = {"vtxTable": {"bands": [{"frequencies": [999]}]}}
+        data = {"vtxTable": {"bands": [{"name": "BAND_A", "letter": "A", "frequencies": [99]}]}}
         with self.assertRaises(ValueError):
             convert(data)
 
