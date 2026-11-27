@@ -910,7 +910,7 @@ void AP_CRSF_Telem::update_vtx_params()
     _vtx_freq_change_pending = vtx.update_band() || vtx.update_channel() || vtx.update_frequency() || _vtx_freq_change_pending;
     // don't update the power if we are supposed to be in pitmode as this will take us out of pitmode
     const bool pitmode = vtx.get_configured_options() & uint8_t(AP_VideoTX::VideoOptions::VTX_PITMODE);
-    _vtx_power_change_pending = !pitmode && (vtx.update_power() || _vtx_power_change_pending);
+    _vtx_power_change_pending = !vtx.custom_power_requested() && !pitmode && (vtx.update_power() || _vtx_power_change_pending);
     _vtx_options_change_pending = vtx.update_options() || _vtx_options_change_pending;
 
     if (_vtx_freq_change_pending || _vtx_power_change_pending || _vtx_options_change_pending) {

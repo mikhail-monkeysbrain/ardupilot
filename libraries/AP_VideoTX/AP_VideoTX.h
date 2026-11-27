@@ -118,8 +118,8 @@ public:
     bool save_staged_jtv1_params();
     bool load_jtv1_params();
     bool load_custom_power_table();
-    bool custom_power_requested() const { return _power_table_count.get() != 0; }
-    bool custom_power_valid() const { return _custom_power_valid; }
+    bool custom_power_requested() const { return _custom_power_boot_requested || _power_table_count.get() != 0; }
+    bool custom_power_valid() const;
     bool custom_power_wire(JTPower::Protocol protocol, uint16_t &wire) const;
     void confirm_custom_power(JTPower::Protocol protocol, uint16_t code);
     bool custom_power_pending(JTPower::Protocol protocol) const;
@@ -219,6 +219,8 @@ private:
     AP_Int32 _power_table_labels[JTPower::MAX_LEVELS];
     JTPower::Table _custom_power_table{};
     bool _custom_power_valid = false;
+    bool _custom_power_boot_requested = false;
+    uint32_t _custom_power_boot_crc = 0;
     int8_t _custom_power_confirmed = -1;
     JTV1::Table _jtv1_table{};
     JTV1::Table _jtv1_staged{};
