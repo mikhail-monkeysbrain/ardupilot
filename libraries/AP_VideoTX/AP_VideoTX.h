@@ -130,7 +130,7 @@ public:
     void set_configured_frequency_mhz(uint16_t freq) { _frequency_mhz.set_and_save_ifchanged(freq); }
     uint16_t get_frequency_mhz() const { return _current_frequency; }
     uint16_t get_configured_frequency_mhz() const { return _frequency_mhz; }
-    bool update_frequency() const { return _defaults_set && _frequency_mhz != _current_frequency; }
+    bool update_frequency() const { const uint16_t target = has_active_jtv1() ? get_frequency_mhz(_band, _channel) : uint16_t(_frequency_mhz.get()); return _defaults_set && target != 0 && target != _current_frequency; }
     void update_configured_frequency();
     // get / set power level
     void set_power_mw(uint16_t power);
@@ -167,13 +167,13 @@ public:
     void set_configured_band(uint8_t band) { _band.set_and_save_ifchanged(band); }
     uint8_t get_configured_band() const { return _band; }
     uint8_t get_band() const { return _current_band; }
-    bool update_band() const { return _defaults_set && _band != _current_band; }
+    bool update_band() const { return _defaults_set && !has_active_jtv1() && _band != _current_band; }
     // get / set the frequency channel
     void set_channel(uint8_t channel) { _current_channel = channel; }
     void set_configured_channel(uint8_t channel) { _channel.set_and_save_ifchanged(channel); }
     uint8_t get_configured_channel() const { return _channel; }
     uint8_t get_channel() const { return _current_channel; }
-    bool update_channel() const { return _defaults_set && _channel != _current_channel; }
+    bool update_channel() const { return _defaults_set && !has_active_jtv1() && _channel != _current_channel; }
     void update_configured_channel_and_band();
     // get / set vtx option
     void set_options(uint16_t options) { _current_options = options; }

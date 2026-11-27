@@ -725,7 +725,11 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         if (header->length < 2) {
             return false;
         }
-        vtx.set_options(vtx.get_configured_options()); // easiest to just make them match
+        if (vtx.has_active_jtv1() || vtx.custom_power_requested()) {
+            request_settings();
+        } else {
+            vtx.set_options(vtx.get_configured_options()); // easiest to just make them match
+        }
         debug("Mode was set to 0x%x", buffer[4]);
     }
         break;
