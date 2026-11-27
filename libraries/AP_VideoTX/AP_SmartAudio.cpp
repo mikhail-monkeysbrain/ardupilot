@@ -454,6 +454,9 @@ void AP_SmartAudio::set_operation_mode(uint8_t mode)
      */
 void AP_SmartAudio::set_frequency(uint16_t frequency, bool isPitModeFreq)
 {
+    if (frequency == 0 || frequency > SMARTAUDIO_FREQUENCY_MASK) {
+        return;
+    }
     debug("Setting frequency to %d with pitmode == %d", frequency, isPitModeFreq);
     push_uint16_command_frame(SMARTAUDIO_CMD_SET_FREQUENCY,
         frequency | (isPitModeFreq ? SMARTAUDIO_SET_PITMODE_FREQ : 0x00));

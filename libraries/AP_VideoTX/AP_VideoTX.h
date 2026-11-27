@@ -225,7 +225,7 @@ private:
     bool _custom_power_boot_requested = false;
     uint32_t _custom_power_boot_crc = 0;
     std::atomic<uint32_t> _custom_power_confirmation{0};
-    int8_t confirmed_custom_power() const;
+    int8_t confirmed_custom_power(bool require_fresh = true) const;
     JTV1::Table _jtv1_table{};
     JTV1::Table _jtv1_staged{};
     bool _jtv1_active = false;

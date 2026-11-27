@@ -350,7 +350,8 @@ void AP_Tramp::process_requests()
                 const uint16_t target_freq = vtx.has_active_jtv1() ?
                     vtx.get_frequency_mhz(vtx.get_configured_band(), vtx.get_configured_channel()) :
                     vtx.get_configured_frequency_mhz();
-                if (target_freq != 0) {
+                const bool freq_valid = device_limits.rf_freq_min != 0 && device_limits.rf_freq_max != 0 ? target_freq >= device_limits.rf_freq_min && target_freq <= device_limits.rf_freq_max : target_freq >= VTX_TRAMP_MIN_FREQUENCY_MHZ && target_freq <= VTX_TRAMP_MAX_FREQUENCY_MHZ;
+                if (target_freq != 0 && freq_valid) {
                     debug("Updating frequency to %uMhz", target_freq);
                     send_command('F', target_freq);
                     configUpdateRequired = true;
@@ -466,7 +467,9 @@ void AP_Tramp::set_frequency(uint16_t freq)
     } else {
         debug("requested frequency %u is invalid", freq);
         // not valid reset to default
-        AP::vtx().set_configured_frequency_mhz(AP::vtx().get_frequency_mhz());
+        if (!AP::vtx().has_active_jtv1()) {
+            AP::vtx().set_configured_frequency_mhz(AP::vtx().get_frequency_mhz());
+        }
     }
 }
 
@@ -481,7 +484,9 @@ void AP_Tramp::update()
     if ((vtx.have_params_changed() || vtx.custom_power_pending(JTPower::Protocol::Tramp)) && retry_count == 0) {
         // check changes in the order they will be processed
         if (vtx.update_frequency() || vtx.update_band() || vtx.update_channel()) {
-            if (vtx.update_frequency()) {
+            if (vtx.has_active_jtv1()) {
+                vtx.update_configured_frequency();
+            } else if (vtx.update_frequency()) {
                 vtx.update_configured_channel_and_band();
             } else {
                 vtx.update_configured_frequency();

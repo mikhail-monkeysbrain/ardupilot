@@ -661,13 +661,13 @@ void AP_VideoTX::confirm_custom_power(JTPower::Protocol protocol, uint16_t code)
     }
 }
 
-int8_t AP_VideoTX::confirmed_custom_power() const
+int8_t AP_VideoTX::confirmed_custom_power(bool require_fresh) const
 {
     const uint32_t packed = _custom_power_confirmation.load(std::memory_order_relaxed);
     const uint32_t id = packed & 15U;
     const uint32_t now = uint32_t(AP_HAL::millis64() / 100U);
     const uint32_t age = (now - (packed >> 4U)) & 0x0FFFFFFFU;
-    if (id == 0 || id > _custom_power_table.count || age >= 50U) {
+    if (id == 0 || id > _custom_power_table.count || (require_fresh && age >= 50U)) {
         return -1;
     }
     return int8_t(id - 1U);
@@ -686,7 +686,7 @@ bool AP_VideoTX::get_custom_power_label(char (&out)[5]) const
 bool AP_VideoTX::custom_power_pending(JTPower::Protocol protocol) const
 {
     uint16_t wire;
-    return _enabled && _defaults_set && !get_pitmode() && !get_configured_pitmode() && custom_power_wire(protocol, wire) && confirmed_custom_power() != _power_table_index.get();
+    return _enabled && _defaults_set && !get_pitmode() && !get_configured_pitmode() && custom_power_wire(protocol, wire) && confirmed_custom_power(false) != _power_table_index.get();
 }
 
 bool AP_VideoTX::update_power() const {
