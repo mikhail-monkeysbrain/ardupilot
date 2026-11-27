@@ -249,12 +249,17 @@ void AP_SmartAudio::update_vtx_params()
             _vtx_power_change_pending = false;
         }
 
+        const bool bounded = vtx.has_active_jtv1() || vtx.custom_power_requested();
+        const uint16_t retry_freq = (_vtx_use_set_freq || vtx.has_active_jtv1()) ? vtx.get_configured_frequency_mhz() : uint16_t(vtx.get_configured_band() * VTX_MAX_CHANNELS + vtx.get_configured_channel());
+        const bool mode_available = !bounded || _retry_mode.available(mode);
+        const bool direct_frequency = _vtx_use_set_freq || vtx.has_active_jtv1();
+        const bool freq_available = !bounded || (_retry_frequency.available(retry_freq) && (!direct_frequency || (retry_freq != 0 && retry_freq <= SMARTAUDIO_FREQUENCY_MASK)));
         // prioritize pitmode changes
-        if (_vtx_options_change_pending) {
+        if (_vtx_options_change_pending && mode_available) {
             debug("update mode '%c%c%c%c'", (mode & 0x8) ? 'U' : 'L',
                 (mode & 0x4) ? 'N' : ' ', (mode & 0x2) ? 'O' : ' ', (mode & 0x1) ? 'I' : ' ');
             set_operation_mode(mode);
-        } else if (_vtx_freq_change_pending) {
+        } else if (_vtx_freq_change_pending && freq_available) {
             debug("update frequency");
             // Custom JTV1 band/channel indices are not necessarily the VTX's
             // factory channel numbering. Use direct MHz for custom tables.
@@ -607,6 +612,13 @@ void AP_SmartAudio::update_vtx_settings(const Settings& settings)
 
     // make sure the configured values now reflect reality
     vtx.set_defaults();
+
+    if (!vtx.update_frequency() && !vtx.update_band() && !vtx.update_channel()) {
+        _retry_frequency.reset();
+    }
+    if (!vtx.update_options()) {
+        _retry_mode.reset();
+    }
 
     _initialised = true;
 

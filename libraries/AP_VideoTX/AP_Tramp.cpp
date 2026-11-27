@@ -147,6 +147,13 @@ char AP_Tramp::handle_response(void)
             debug("device config: freq: %u, cfg pwr: %umw, act pwr: %umw, pitmode: %u",
                 unsigned(freq), unsigned(power), unsigned(cur_act_power), unsigned(pit_mode));
 
+            if (!vtx.update_frequency() && !vtx.update_band() && !vtx.update_channel()) {
+                _retry_frequency.reset();
+            }
+            if (!vtx.update_options()) {
+                _retry_mode.reset();
+            }
+
             // update the "_configuration_finished" flag, otherwise OSD item VTX_POWER blinks forever
             vtx.set_configuration_finished(!vtx.have_params_changed() && !vtx.custom_power_pending(JTPower::Protocol::Tramp));
 
@@ -356,7 +363,8 @@ void AP_Tramp::process_requests()
                     send_command('F', target_freq);
                     configUpdateRequired = true;
                 }
-            } else if (!is_race_lock_enabled() && (vtx.update_power() || vtx.custom_power_pending(JTPower::Protocol::Tramp))) {
+            }
+            if (!configUpdateRequired && !is_race_lock_enabled() && (vtx.update_power() || vtx.custom_power_pending(JTPower::Protocol::Tramp))) {
                 debug("Updating power to %umw\n", vtx.get_configured_power_mw());
                 // Power can be and needs to be updated, issue request
                 uint16_t wire = vtx.get_configured_power_mw();
@@ -364,7 +372,8 @@ void AP_Tramp::process_requests()
                     send_command('P', wire);
                     configUpdateRequired = true;
                 }
-            } else if (vtx.update_options()) {
+            }
+            if (!configUpdateRequired && vtx.update_options()) {
                 // Pit mode needs to be updated, issue request
                 const uint16_t mode = vtx.has_option(AP_VideoTX::VideoOptions::VTX_PITMODE) ? 0 : 1;
                 if (!(vtx.has_active_jtv1() || vtx.custom_power_requested()) || _retry_mode.allow(mode)) {
