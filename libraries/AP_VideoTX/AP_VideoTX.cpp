@@ -812,6 +812,45 @@ void AP_VideoTX::announce_vtx_settings() const
 
 // change the video power based on switch input
 // 6-pos range is in the middle of the available range
+bool AP_VideoTX::step_channel(int8_t direction)
+{
+    if (!_enabled || !_jtv1_active || (direction != 1 && direction != -1)) {
+        return false;
+    }
+    const int16_t total = MAX_BANDS * VTX_MAX_CHANNELS;
+    int16_t index = int16_t(_band.get()) * VTX_MAX_CHANNELS + _channel.get();
+    if (_band.get() < 0 || _band.get() >= MAX_BANDS || _channel.get() < 0 || _channel.get() >= VTX_MAX_CHANNELS) {
+        return false;
+    }
+    for (int16_t i = 0; i < total; i++) {
+        index = (index + direction + total) % total;
+        const uint8_t band = index / VTX_MAX_CHANNELS;
+        const uint8_t channel = index % VTX_MAX_CHANNELS;
+        const uint16_t freq = get_frequency_mhz(band, channel);
+        if (freq != 0) {
+            _band.set_and_save_ifchanged(band);
+            _channel.set_and_save_ifchanged(channel);
+            _frequency_mhz.set_and_save_ifchanged(freq);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool AP_VideoTX::step_power(int8_t direction)
+{
+    if (!_enabled || !custom_power_valid() || (direction != 1 && direction != -1)) {
+        return false;
+    }
+    const int16_t index = _power_table_index.get();
+    const int16_t next = index + direction;
+    if (index < 0 || index >= _custom_power_table.count || next < 0 || next >= _custom_power_table.count) {
+        return false;
+    }
+    _power_table_index.set_and_save_ifchanged(next);
+    return true;
+}
+
 void AP_VideoTX::change_power(int8_t position)
 {
     if (!_enabled || position < 0 || position > 5) {

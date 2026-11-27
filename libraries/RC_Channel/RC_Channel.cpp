@@ -196,7 +196,7 @@ const AP_Param::GroupInfo RC_Channel::var_info[] = {
     // @Values{Copter, Rover, Plane, Blimp, Sub}: 90:EKF Source Set
     // @Values{Plane}: 91:Airspeed Ratio Calibration
     // @Values{Plane}: 92:FBWA Mode
-    // @Values{Copter, Rover, Plane, Sub}: 94:VTX Power
+    // @Values{Copter, Rover, Plane, Sub}: 94:VTX Power,196:VTX Channel Next,197:VTX Channel Previous,198:VTX Power Next,199:VTX Power Previous
     // @Values{Plane}: 95:FBWA taildragger takeoff mode
     // @Values{Plane}: 96:Trigger re-reading of mode switch
     // @Values{Rover}: 97:Windvane home heading direction offset
@@ -734,6 +734,10 @@ void RC_Channel::init_aux_function(const AUX_FUNC ch_option, const AuxSwitchPos 
 #endif
 #if AP_VIDEOTX_ENABLED
     case AUX_FUNC::VTX_POWER:
+    case AUX_FUNC::VTX_CHANNEL_NEXT:
+    case AUX_FUNC::VTX_CHANNEL_PREV:
+    case AUX_FUNC::VTX_POWER_NEXT:
+    case AUX_FUNC::VTX_POWER_PREV:
 #endif
 #if AP_OPTICALFLOW_CALIBRATOR_ENABLED
     case AUX_FUNC::OPTFLOW_CAL:
@@ -1493,6 +1497,29 @@ bool RC_Channel::do_aux_function(const AuxFuncTrigger &trigger)
     const AuxSwitchPos &ch_flag = trigger.pos;
 
     switch (ch_option) {
+#if AP_VIDEOTX_ENABLED
+    case AUX_FUNC::VTX_CHANNEL_NEXT:
+        if (ch_flag == AuxSwitchPos::HIGH) {
+            return AP::vtx().step_channel(1);
+        }
+        break;
+    case AUX_FUNC::VTX_CHANNEL_PREV:
+        if (ch_flag == AuxSwitchPos::HIGH) {
+            return AP::vtx().step_channel(-1);
+        }
+        break;
+    case AUX_FUNC::VTX_POWER_NEXT:
+        if (ch_flag == AuxSwitchPos::HIGH) {
+            return AP::vtx().step_power(1);
+        }
+        break;
+    case AUX_FUNC::VTX_POWER_PREV:
+        if (ch_flag == AuxSwitchPos::HIGH) {
+            return AP::vtx().step_power(-1);
+        }
+        break;
+#endif
+
 #if AP_FENCE_ENABLED
     case AUX_FUNC::FENCE:
         do_aux_function_fence(ch_flag);

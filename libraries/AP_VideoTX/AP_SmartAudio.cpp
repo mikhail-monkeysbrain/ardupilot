@@ -648,8 +648,10 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         const U16ResponseFrame *resp = (const U16ResponseFrame *)buffer;
         unpack_frequency(&settings, be16toh(resp->payload));
         vtx.set_frequency_mhz(settings.frequency);
-        vtx.set_configured_frequency_mhz(vtx.get_frequency_mhz());
-        vtx.update_configured_channel_and_band();
+        if (!vtx.has_active_jtv1()) {
+            vtx.set_configured_frequency_mhz(vtx.get_frequency_mhz());
+            vtx.update_configured_channel_and_band();
+        }
         debug("Frequency was set to %d", settings.frequency);
     }
         break;
@@ -661,9 +663,11 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         const U8ResponseFrame *resp = (const U8ResponseFrame *)buffer;
         vtx.set_band(resp->payload / VTX_MAX_CHANNELS);
         vtx.set_channel(resp->payload % VTX_MAX_CHANNELS);
-        vtx.set_configured_channel(vtx.get_channel());
-        vtx.set_configured_band(vtx.get_band());
-        vtx.update_configured_frequency();
+        if (!vtx.has_active_jtv1()) {
+            vtx.set_configured_channel(vtx.get_channel());
+            vtx.set_configured_band(vtx.get_band());
+            vtx.update_configured_frequency();
+        }
         debug("Channel was set to %d", resp->payload);
     }
         break;
