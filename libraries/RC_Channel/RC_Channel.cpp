@@ -1034,6 +1034,13 @@ bool RC_Channel::read_aux()
 bool RC_Channel::init_position_on_first_radio_read(AUX_FUNC func) const
 {
     switch (func) {
+#if AP_VIDEOTX_ENABLED
+    case AUX_FUNC::VTX_CHANNEL_NEXT:
+    case AUX_FUNC::VTX_CHANNEL_PREV:
+    case AUX_FUNC::VTX_POWER_NEXT:
+    case AUX_FUNC::VTX_POWER_PREV:
+        return true;
+#endif
 #if AP_ARMING_ENABLED
     case AUX_FUNC::ARMDISARM_AIRMODE:
     case AUX_FUNC::ARMDISARM:

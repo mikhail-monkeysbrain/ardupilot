@@ -173,6 +173,27 @@ bool RC_Channels::has_active_overrides()
 void RC_Channels::read_aux_all()
 {
     if (!has_valid_input()) {
+#if AP_VIDEOTX_ENABLED
+        for (uint8_t i = 0; i < NUM_RC_CHANNELS; i++) {
+            RC_Channel *c = channel(i);
+            if (c == nullptr) {
+                continue;
+            }
+            switch (RC_Channel::AUX_FUNC(c->option.get())) {
+            case RC_Channel::AUX_FUNC::VTX_CHANNEL_NEXT:
+            case RC_Channel::AUX_FUNC::VTX_CHANNEL_PREV:
+            case RC_Channel::AUX_FUNC::VTX_POWER_NEXT:
+            case RC_Channel::AUX_FUNC::VTX_POWER_PREV:
+                c->switch_state.initialised = false;
+                c->switch_state.current_position = -1;
+                c->switch_state.debounce_position = -1;
+                c->switch_state.last_edge_time_ms = 0;
+                break;
+            default:
+                break;
+            }
+        }
+#endif
         // exit immediately when no RC input
         return;
     }
