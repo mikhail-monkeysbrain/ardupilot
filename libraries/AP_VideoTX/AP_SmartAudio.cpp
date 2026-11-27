@@ -345,6 +345,11 @@ bool AP_SmartAudio::read_response(uint8_t *response_buffer)
         if (ignore_crc()) {
             header->length++;
         }
+        if (header->length == 0 || header->length > AP_SMARTAUDIO_MAX_PACKET_SIZE - response_header_size) {
+            _inline_buffer_length = 0;
+            _port->discard_input();
+            return false;
+        }
         _packet_size = header->length;
     }
 
@@ -573,6 +578,9 @@ void AP_SmartAudio::update_vtx_settings(const Settings& settings)
 bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
 {
     const FrameHeader *header = (const FrameHeader *)buffer;
+    if (header->length == 0 || header->length > AP_SMARTAUDIO_MAX_PACKET_SIZE - sizeof(FrameHeader)) {
+        return false;
+    }
     const uint8_t fullFrameLength = sizeof(FrameHeader) + header->length;
     const uint8_t headerPayloadLength = fullFrameLength - 1; // subtract crc byte from length
     const uint8_t *startPtr = buffer + 2;
@@ -590,6 +598,9 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
 
     switch (header->command) {
     case SMARTAUDIO_RSP_GET_SETTINGS_V1:
+        if (header->length < 6) {
+            return false;
+        }
         _protocol_version = SMARTAUDIO_SPEC_PROTOCOL_v1;
         unpack_settings(&settings, (const SettingsResponseFrame *)buffer);
         settings.version = SMARTAUDIO_SPEC_PROTOCOL_v1;
@@ -598,6 +609,9 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         break;
 
     case SMARTAUDIO_RSP_GET_SETTINGS_V2:
+        if (header->length < 6) {
+            return false;
+        }
         _protocol_version = SMARTAUDIO_SPEC_PROTOCOL_v2;
         unpack_settings(&settings, (const SettingsResponseFrame *)buffer);
         settings.version = SMARTAUDIO_SPEC_PROTOCOL_v2;
@@ -606,6 +620,9 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         break;
 
     case SMARTAUDIO_RSP_GET_SETTINGS_V21:
+        if (header->length < 8 || buffer[10] >= 8 || header->length < 9U + buffer[10]) {
+            return false;
+        }
         _protocol_version = SMARTAUDIO_SPEC_PROTOCOL_v21;
         unpack_settings(&settings, (const SettingsExtendedResponseFrame *)buffer);
         settings.version = SMARTAUDIO_SPEC_PROTOCOL_v21;
@@ -614,8 +631,11 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         break;
 
     case SMARTAUDIO_RSP_SET_FREQUENCY: {
+        if (header->length < 3) {
+            return false;
+        }
         const U16ResponseFrame *resp = (const U16ResponseFrame *)buffer;
-        unpack_frequency(&settings, resp->payload);
+        unpack_frequency(&settings, be16toh(resp->payload));
         vtx.set_frequency_mhz(settings.frequency);
         vtx.set_configured_frequency_mhz(vtx.get_frequency_mhz());
         vtx.update_configured_channel_and_band();
@@ -624,6 +644,9 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         break;
 
     case SMARTAUDIO_RSP_SET_CHANNEL: {
+        if (header->length < 2) {
+            return false;
+        }
         const U8ResponseFrame *resp = (const U8ResponseFrame *)buffer;
         vtx.set_band(resp->payload / VTX_MAX_CHANNELS);
         vtx.set_channel(resp->payload % VTX_MAX_CHANNELS);
@@ -635,8 +658,10 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         break;
 
     case SMARTAUDIO_RSP_SET_POWER: {
-        const U16ResponseFrame *resp = (const U16ResponseFrame *)buffer;
-        const uint8_t power = resp->payload & 0xFF;
+        if (header->length < 2) {
+            return false;
+        }
+        const uint8_t power = buffer[4];
         if (vtx.custom_power_requested()) {
             switch (_protocol_version) {
             case SMARTAUDIO_SPEC_PROTOCOL_v21:
@@ -679,6 +704,9 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
         break;
 
     case SMARTAUDIO_RSP_SET_MODE: {
+        if (header->length < 2) {
+            return false;
+        }
         vtx.set_options(vtx.get_configured_options()); // easiest to just make them match
         debug("Mode was set to 0x%x", buffer[4]);
     }

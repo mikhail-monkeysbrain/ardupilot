@@ -415,7 +415,7 @@ void AP_Tramp::process_requests()
         // Check request time
         if (replyCode == 's') {
             // Got reply, return to request freq/power/pit
-            set_status(TrampStatus::TRAMP_STATUS_ONLINE_MONITOR_TEMP);
+            set_status(TrampStatus::TRAMP_STATUS_ONLINE_MONITOR_FREQPWRPIT);
         } else if ((now - last_time_us) >= TRAMP_MIN_REQUEST_PERIOD_US) {
             // Timed out after min request period, return to request freq/power/pit query
             set_status(TrampStatus::TRAMP_STATUS_ONLINE_MONITOR_FREQPWRPIT);
