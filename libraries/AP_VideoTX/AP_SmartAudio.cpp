@@ -101,7 +101,18 @@ void AP_SmartAudio::loop()
                 }
             }
 
+            if (_initialised && requests_queue.is_empty() && now - _last_request_sent_ms >= 1000U) {
+                request_settings();
+            }
+
             if (requests_queue.pop(current_command)) {
+                if (current_command.frame.header.command == SMARTAUDIO_CMD_SET_POWER && vtx.custom_power_requested()) {
+                    const auto protocol = _protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v21 ? JTPower::Protocol::SmartAudio21 : (_protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v2 ? JTPower::Protocol::SmartAudio2 : JTPower::Protocol::SmartAudio1);
+                    uint16_t wire = 0;
+                    if (!vtx.custom_power_pending(protocol) || !vtx.custom_power_wire(protocol, wire) || current_command.frame.payload[0] != wire) {
+                        continue;
+                    }
+                }
                 // send the popped command from bugger
                 send_request(current_command.frame, current_command.frame_size);
 

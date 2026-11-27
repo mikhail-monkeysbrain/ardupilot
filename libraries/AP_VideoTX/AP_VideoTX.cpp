@@ -655,7 +655,7 @@ void AP_VideoTX::confirm_custom_power(JTPower::Protocol protocol, uint16_t code)
 {
     if (custom_power_requested() && custom_power_valid() && _custom_power_table.protocol == protocol) {
         const int8_t index = JTPower::find_code(_custom_power_table, code);
-        const uint32_t ticks = AP_HAL::millis() / 100U;
+        const uint32_t ticks = uint32_t(AP_HAL::millis64() / 100U);
         const uint32_t packed = index < 0 ? 0U : (ticks << 4U) | uint32_t(index + 1);
         _custom_power_confirmation.store(packed, std::memory_order_relaxed);
     }
@@ -665,7 +665,7 @@ int8_t AP_VideoTX::confirmed_custom_power() const
 {
     const uint32_t packed = _custom_power_confirmation.load(std::memory_order_relaxed);
     const uint32_t id = packed & 15U;
-    const uint32_t now = AP_HAL::millis() / 100U;
+    const uint32_t now = uint32_t(AP_HAL::millis64() / 100U);
     const uint32_t age = (now - (packed >> 4U)) & 0x0FFFFFFFU;
     if (id == 0 || id > _custom_power_table.count || age >= 50U) {
         return -1;
