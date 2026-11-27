@@ -82,6 +82,28 @@ inline bool encode(const Table &table, uint8_t index, uint16_t &wire)
     return true;
 }
 
+inline bool decode_label(uint32_t value, char (&out)[5])
+{
+    static constexpr char alphabet[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-";
+    out[0] = 0;
+    if (value == 0 || value > 0xFFFFFFU) {
+        return false;
+    }
+    bool ended = false;
+    for (uint8_t i = 0; i < 4; i++) {
+        const uint8_t symbol = (value >> (6U * i)) & 63U;
+        if (symbol == 0) {
+            ended = true;
+        } else if (ended) {
+            out[0] = 0;
+            return false;
+        }
+        out[i] = symbol == 0 ? char(0) : alphabet[symbol - 1U];
+    }
+    out[4] = 0;
+    return true;
+}
+
 inline uint32_t checksum(const Table &table)
 {
     if (!validate(table)) {
