@@ -148,7 +148,7 @@ char AP_Tramp::handle_response(void)
                 unsigned(freq), unsigned(power), unsigned(cur_act_power), unsigned(pit_mode));
 
             // update the "_configuration_finished" flag, otherwise OSD item VTX_POWER blinks forever
-            vtx.set_configuration_finished(!update_pending);
+            vtx.set_configuration_finished(!vtx.have_params_changed() && !vtx.custom_power_pending(JTPower::Protocol::Tramp));
 
             return 'v';
         }

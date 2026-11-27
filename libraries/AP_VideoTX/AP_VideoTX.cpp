@@ -747,6 +747,26 @@ bool AP_VideoTX::set_defaults()
         return false;
     }
 
+    if (has_active_jtv1()) {
+        const uint16_t selected = get_frequency_mhz(_band, _channel);
+        if (selected == 0 || _current_frequency == 0) {
+            return false;
+        }
+        VideoBand band;
+        uint8_t channel;
+        if (get_band_and_channel(_current_frequency, band, channel)) {
+            _current_band = band;
+            _current_channel = channel;
+        }
+        if (!_options.configured()) {
+            _options.set_and_save(_current_options);
+        }
+        _frequency_mhz.set_and_save_ifchanged(selected);
+        _defaults_set = true;
+        announce_vtx_settings();
+        return true;
+    }
+
     // check that our current view of frequency matches band/channel
     // if not then force one to be correct
     uint16_t calced_freq = get_frequency_mhz(_current_band, _current_channel);

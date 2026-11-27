@@ -186,7 +186,7 @@ void AP_SmartAudio::update_vtx_params()
     if (_vtx_freq_change_pending || _vtx_power_change_pending || _vtx_options_change_pending) {
         // make the desired frequency match the desired band and channel
         if (_vtx_freq_change_pending) {
-            if (vtx.update_band() || vtx.update_channel()) {
+            if (vtx.has_active_jtv1() || vtx.update_band() || vtx.update_channel()) {
                 vtx.update_configured_frequency();
             } else {
                 vtx.update_configured_channel_and_band();
