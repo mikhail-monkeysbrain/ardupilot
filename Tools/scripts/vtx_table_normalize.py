@@ -65,6 +65,7 @@ def normalize_json(source):
 
 def normalize_cli(source):
     bands_count = channels_count = None
+    power_count = power_values = power_labels = None
     bands = {}
     for line_no, line in enumerate(source.splitlines(), 1):
         line = line.strip()
@@ -75,6 +76,18 @@ def normalize_cli(source):
             bands_count = int(words[2])
         elif words[:2] == ["vtxtable", "channels"] and len(words) == 3:
             channels_count = int(words[2])
+        elif words[:2] == ["vtxtable", "powerlevels"] and len(words) == 3:
+            if power_count is not None:
+                raise ValueError("duplicate powerlevels")
+            power_count = int(words[2])
+        elif words[:2] == ["vtxtable", "powervalues"]:
+            if power_values is not None:
+                raise ValueError("duplicate powervalues")
+            power_values = [int(x) for x in words[2:]]
+        elif words[:2] == ["vtxtable", "powerlabels"]:
+            if power_labels is not None:
+                raise ValueError("duplicate powerlabels")
+            power_labels = words[2:]
         elif words[:2] == ["vtxtable", "band"] and len(words) >= 7:
             index = int(words[2])
             name, letter = words[3:5]
@@ -94,7 +107,20 @@ def normalize_cli(source):
         raise ValueError("missing or extra band definition")
     if any(len(b["frequencies"]) != channels_count for b in bands.values()):
         raise ValueError("frequency count differs from vtxtable channels")
-    return {"format": "jtzero-vtx-table-v1", "bands": [bands[i] for i in range(1, bands_count + 1)], "powerlevels": []}
+    powers = []
+    if any(x is not None for x in (power_count, power_values, power_labels)):
+        if power_count is None or not 0 <= power_count <= 10:
+            raise ValueError("invalid powerlevels count")
+        if power_count == 0:
+            if power_values or power_labels:
+                raise ValueError("unexpected power entries")
+        else:
+            if power_values is None or power_labels is None or len(power_values) != power_count or len(power_labels) != power_count:
+                raise ValueError("power table count mismatch")
+            if any(not 0 <= x <= 65535 for x in power_values):
+                raise ValueError("power code out of range")
+            powers = [{"value": v, "label": l} for v, l in zip(power_values, power_labels)]
+    return {"format": "jtzero-vtx-table-v1", "bands": [bands[i] for i in range(1, bands_count + 1)], "powerlevels": powers}
 
 
 def main():
