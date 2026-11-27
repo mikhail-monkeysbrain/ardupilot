@@ -22,6 +22,7 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_HAL/utility/RingBuffer.h>
 #include "AP_VideoTX.h"
+#include "AP_VTXRetry.h"
 
 #define SMARTAUDIO_BUFFER_CAPACITY 5
 
@@ -162,6 +163,9 @@ public:
     bool init();
 
 private:
+    JTVTX::Retry _retry_frequency;
+    JTVTX::Retry _retry_power;
+    JTVTX::Retry _retry_mode;
     // serial interface
     AP_HAL::UARTDriver *_port;                  // UART used to send data to SmartAudio VTX
 

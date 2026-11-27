@@ -17,5 +17,13 @@ int main() {
     assert(freq.allow(5820));
     assert(freq.attempts() == 1);
     puts("PASS: explicit reset");
+    JTVTX::Retry mode;
+    for (int i = 0; i < 100; ++i) { assert(mode.available(1)); }
+    assert(mode.attempts() == 0);
+    for (int i = 0; i < 5; ++i) { assert(mode.available(1)); assert(mode.allow(1)); }
+    assert(!mode.available(1));
+    assert(mode.available(2));
+    assert(mode.attempts() == 5);
+    puts("PASS: availability check does not consume attempts");
     puts("ALL RETRY TESTS PASSED");
 }

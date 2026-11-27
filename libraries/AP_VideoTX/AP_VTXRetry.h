@@ -5,6 +5,9 @@ namespace JTVTX {
 class Retry {
 public:
     static constexpr uint8_t MAX_ATTEMPTS = 5;
+    bool available(uint16_t value) const {
+        return !_valid || _value != value || _attempts < MAX_ATTEMPTS;
+    }
     bool allow(uint16_t value) {
         if (!_valid || _value != value) {
             _valid = true;

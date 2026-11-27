@@ -351,7 +351,7 @@ void AP_Tramp::process_requests()
                     vtx.get_frequency_mhz(vtx.get_configured_band(), vtx.get_configured_channel()) :
                     vtx.get_configured_frequency_mhz();
                 const bool freq_valid = device_limits.rf_freq_min != 0 && device_limits.rf_freq_max != 0 ? target_freq >= device_limits.rf_freq_min && target_freq <= device_limits.rf_freq_max : target_freq >= VTX_TRAMP_MIN_FREQUENCY_MHZ && target_freq <= VTX_TRAMP_MAX_FREQUENCY_MHZ;
-                if (target_freq != 0 && freq_valid) {
+                if (target_freq != 0 && freq_valid && (!(vtx.has_active_jtv1() || vtx.custom_power_requested()) || _retry_frequency.allow(target_freq))) {
                     debug("Updating frequency to %uMhz", target_freq);
                     send_command('F', target_freq);
                     configUpdateRequired = true;
@@ -360,18 +360,17 @@ void AP_Tramp::process_requests()
                 debug("Updating power to %umw\n", vtx.get_configured_power_mw());
                 // Power can be and needs to be updated, issue request
                 uint16_t wire = vtx.get_configured_power_mw();
-                if (!vtx.custom_power_requested() || vtx.custom_power_wire(JTPower::Protocol::Tramp, wire)) {
+                if ((!vtx.custom_power_requested() || vtx.custom_power_wire(JTPower::Protocol::Tramp, wire)) && (!(vtx.has_active_jtv1() || vtx.custom_power_requested()) || _retry_power.allow(wire))) {
                     send_command('P', wire);
+                    configUpdateRequired = true;
                 }
-
-                // Set flag
-                configUpdateRequired = true;
             } else if (vtx.update_options()) {
                 // Pit mode needs to be updated, issue request
-                send_command('I', vtx.has_option(AP_VideoTX::VideoOptions::VTX_PITMODE) ? 0 : 1);
-
-                // Set flag
-                configUpdateRequired = true;
+                const uint16_t mode = vtx.has_option(AP_VideoTX::VideoOptions::VTX_PITMODE) ? 0 : 1;
+                if (!(vtx.has_active_jtv1() || vtx.custom_power_requested()) || _retry_mode.allow(mode)) {
+                    send_command('I', mode);
+                    configUpdateRequired = true;
+                }
             }
 
             if (configUpdateRequired) {

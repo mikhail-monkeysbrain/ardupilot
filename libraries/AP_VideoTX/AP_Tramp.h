@@ -26,6 +26,7 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_HAL/utility/RingBuffer.h>
 #include "AP_VideoTX.h"
+#include "AP_VTXRetry.h"
 
 #define VTX_TRAMP_POWER_COUNT 5
 
@@ -63,6 +64,9 @@ public:
     uint16_t get_current_temp();
 
 private:
+    JTVTX::Retry _retry_frequency;
+    JTVTX::Retry _retry_power;
+    JTVTX::Retry _retry_mode;
     uint8_t checksum(uint8_t *buf);
     // Check if race lock is enabled
     bool is_race_lock_enabled(void) {

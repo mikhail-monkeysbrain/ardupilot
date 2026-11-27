@@ -113,6 +113,30 @@ void AP_SmartAudio::loop()
                         continue;
                     }
                 }
+                if (vtx.has_active_jtv1() || vtx.custom_power_requested()) {
+                    const auto &frame = current_command.frame;
+                    bool allowed = true;
+                    switch (frame.header.command) {
+                    case SMARTAUDIO_CMD_SET_FREQUENCY:
+                        allowed = _retry_frequency.allow((uint16_t(frame.payload[0]) << 8U) | frame.payload[1]);
+                        break;
+                    case SMARTAUDIO_CMD_SET_CHANNEL:
+                        allowed = _retry_frequency.allow(frame.payload[0]);
+                        break;
+                    case SMARTAUDIO_CMD_SET_POWER:
+                        allowed = _retry_power.allow(frame.payload[0]);
+                        break;
+                    case SMARTAUDIO_CMD_SET_MODE:
+                        allowed = _retry_mode.allow(frame.payload[0]);
+                        break;
+                    default:
+                        break;
+                    }
+                    if (!allowed) {
+                        hal.scheduler->delay(10);
+                        continue;
+                    }
+                }
                 // send the popped command from bugger
                 send_request(current_command.frame, current_command.frame_size);
 
