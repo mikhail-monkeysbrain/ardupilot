@@ -123,6 +123,7 @@ public:
     bool custom_power_wire(JTPower::Protocol protocol, uint16_t &wire) const;
     void confirm_custom_power(JTPower::Protocol protocol, uint16_t code);
     bool custom_power_pending(JTPower::Protocol protocol) const;
+    bool get_custom_power_label(char (&out)[5]) const;
 
     void set_frequency_mhz(uint16_t freq) { _current_frequency = freq; }
     void set_configured_frequency_mhz(uint16_t freq) { _frequency_mhz.set_and_save_ifchanged(freq); }

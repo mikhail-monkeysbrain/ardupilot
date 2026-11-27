@@ -642,6 +642,15 @@ void AP_VideoTX::confirm_custom_power(JTPower::Protocol protocol, uint16_t code)
     }
 }
 
+bool AP_VideoTX::get_custom_power_label(char (&out)[5]) const
+{
+    out[0] = 0;
+    if (!custom_power_requested() || !_custom_power_valid || _custom_power_confirmed < 0 || _custom_power_confirmed >= _custom_power_table.count) {
+        return false;
+    }
+    return JTPower::decode_label(_custom_power_table.levels[_custom_power_confirmed].label, out);
+}
+
 bool AP_VideoTX::custom_power_pending(JTPower::Protocol protocol) const
 {
     uint16_t wire;

@@ -2639,6 +2639,13 @@ void AP_OSD_Screen::draw_vtx_power(uint8_t x, uint8_t y)
     if (!vtx) {
         return;
     }
+    if (vtx->custom_power_requested()) {
+        char label[5]{};
+        const bool pit = vtx->has_option(AP_VideoTX::VideoOptions::VTX_PITMODE);
+        const bool valid = vtx->get_custom_power_label(label);
+        backend->write(x, y, !vtx->is_configuration_finished() || (!pit && !valid), "%5s", pit ? "PIT" : (valid ? label : "?"));
+        return;
+    }
     uint16_t powr = 0;
     // If currently in pit mode, just render 0mW to the screen
     if(!vtx->has_option(AP_VideoTX::VideoOptions::VTX_PITMODE)){

@@ -478,7 +478,7 @@ void AP_Tramp::update()
 
     AP_VideoTX& vtx = AP::vtx();
 
-    if (vtx.have_params_changed() && retry_count == 0) {
+    if ((vtx.have_params_changed() || vtx.custom_power_pending(JTPower::Protocol::Tramp)) && retry_count == 0) {
         // check changes in the order they will be processed
         if (vtx.update_frequency() || vtx.update_band() || vtx.update_channel()) {
             if (vtx.update_frequency()) {
