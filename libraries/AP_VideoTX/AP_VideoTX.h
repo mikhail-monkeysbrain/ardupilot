@@ -120,6 +120,9 @@ public:
     bool load_custom_power_table();
     bool custom_power_requested() const { return _power_table_count.get() != 0; }
     bool custom_power_valid() const { return _custom_power_valid; }
+    bool custom_power_wire(JTPower::Protocol protocol, uint16_t &wire) const;
+    void confirm_custom_power(JTPower::Protocol protocol, uint16_t code);
+    bool custom_power_pending(JTPower::Protocol protocol) const;
 
     void set_frequency_mhz(uint16_t freq) { _current_frequency = freq; }
     void set_configured_frequency_mhz(uint16_t freq) { _frequency_mhz.set_and_save_ifchanged(freq); }

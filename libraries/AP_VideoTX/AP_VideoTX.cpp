@@ -629,7 +629,29 @@ bool AP_VideoTX::update_options() const
     return false;
 }
 
+bool AP_VideoTX::custom_power_wire(JTPower::Protocol protocol, uint16_t &wire) const
+{
+    const int8_t index = _power_table_index.get();
+    return custom_power_requested() && _custom_power_valid && _custom_power_table.protocol == protocol && index >= 0 && JTPower::encode(_custom_power_table, uint8_t(index), wire);
+}
+
+void AP_VideoTX::confirm_custom_power(JTPower::Protocol protocol, uint16_t code)
+{
+    if (custom_power_requested() && _custom_power_valid && _custom_power_table.protocol == protocol) {
+        _custom_power_confirmed = JTPower::find_code(_custom_power_table, code);
+    }
+}
+
+bool AP_VideoTX::custom_power_pending(JTPower::Protocol protocol) const
+{
+    uint16_t wire;
+    return _defaults_set && !get_pitmode() && !get_configured_pitmode() && custom_power_wire(protocol, wire) && _custom_power_confirmed != _power_table_index.get();
+}
+
 bool AP_VideoTX::update_power() const {
+    if (custom_power_requested()) {
+        return false;
+    }
     if (!_defaults_set || _power_mw == get_power_mw() || get_pitmode()) {
         return false;
     }
@@ -752,6 +774,13 @@ void AP_VideoTX::announce_vtx_settings() const
 void AP_VideoTX::change_power(int8_t position)
 {
     if (!_enabled || position < 0 || position > 5) {
+        return;
+    }
+    if (custom_power_requested()) {
+        if (_custom_power_valid) {
+            const uint8_t index = (uint16_t(position) * (_custom_power_table.count - 1) + 2U) / 5U;
+            _power_table_index.set_and_save_ifchanged(index);
+        }
         return;
     }
     // first find out how many possible levels there are

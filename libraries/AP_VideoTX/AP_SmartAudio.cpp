@@ -143,7 +143,7 @@ void AP_SmartAudio::loop()
             _is_waiting_response = false;
             debug("response timeout");
         } else if (_initialised) {
-            if (AP::vtx().have_params_changed() ||_vtx_power_change_pending
+            if (AP::vtx().have_params_changed() || vtx.custom_power_pending((_protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v21 ? JTPower::Protocol::SmartAudio21 : (_protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v2 ? JTPower::Protocol::SmartAudio2 : JTPower::Protocol::SmartAudio1))) ||_vtx_power_change_pending
                 || _vtx_freq_change_pending || _vtx_options_change_pending) {
                 update_vtx_params();
                 set_configuration_pending(true);
@@ -167,6 +167,9 @@ void AP_SmartAudio::update_vtx_params()
 
     _vtx_freq_change_pending = vtx.update_band() || vtx.update_channel() || vtx.update_frequency() || _vtx_freq_change_pending;
     _vtx_power_change_pending = vtx.update_power() || _vtx_power_change_pending;
+    if (vtx.custom_power_requested()) {
+        _vtx_power_change_pending = vtx.custom_power_pending((_protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v21 ? JTPower::Protocol::SmartAudio21 : (_protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v2 ? JTPower::Protocol::SmartAudio2 : JTPower::Protocol::SmartAudio1)));
+    }
     _vtx_options_change_pending = vtx.update_options() || _vtx_options_change_pending;
 
     if (_vtx_freq_change_pending || _vtx_power_change_pending || _vtx_options_change_pending) {
@@ -234,6 +237,13 @@ void AP_SmartAudio::update_vtx_params()
             }
         } else if (_vtx_power_change_pending) {
             debug("update power (ver %u)", _protocol_version);
+            if (vtx.custom_power_requested()) {
+                uint16_t wire;
+                if (vtx.custom_power_wire((_protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v21 ? JTPower::Protocol::SmartAudio21 : (_protocol_version == SMARTAUDIO_SPEC_PROTOCOL_v2 ? JTPower::Protocol::SmartAudio2 : JTPower::Protocol::SmartAudio1)), wire)) {
+                    set_power(uint8_t(wire));
+                }
+                return;
+            }
             switch (_protocol_version) {
             case SMARTAUDIO_SPEC_PROTOCOL_v21:
                 set_power(vtx.get_configured_power_dbm() | 0x80);
@@ -524,7 +534,15 @@ void AP_SmartAudio::update_vtx_settings(const Settings& settings)
     vtx.set_band(settings.band);
     vtx.set_channel(settings.channel);
     // SA21 sends us a complete packet with the supported power levels
-    if (settings.version == SMARTAUDIO_SPEC_PROTOCOL_v21) {
+    if (vtx.custom_power_requested()) {
+        if (settings.version == SMARTAUDIO_SPEC_PROTOCOL_v21) {
+            vtx.confirm_custom_power(JTPower::Protocol::SmartAudio21, settings.power_in_dbm & 0x7F);
+        } else if (settings.version == SMARTAUDIO_SPEC_PROTOCOL_v2) {
+            vtx.confirm_custom_power(JTPower::Protocol::SmartAudio2, settings.power);
+        }
+        // SA1 settings report a level, not necessarily the DAC code.
+        // Confirm SA1 custom power only through SET_POWER response.
+    } else if (settings.version == SMARTAUDIO_SPEC_PROTOCOL_v21) {
         vtx.set_power_dbm(settings.power_in_dbm);
         // learn them all
         vtx.update_all_power_dbm(settings.num_power_levels, settings.power_levels);
@@ -619,6 +637,20 @@ bool  AP_SmartAudio::parse_response_buffer(const uint8_t *buffer)
     case SMARTAUDIO_RSP_SET_POWER: {
         const U16ResponseFrame *resp = (const U16ResponseFrame *)buffer;
         const uint8_t power = resp->payload & 0xFF;
+        if (vtx.custom_power_requested()) {
+            switch (_protocol_version) {
+            case SMARTAUDIO_SPEC_PROTOCOL_v21:
+                vtx.confirm_custom_power(JTPower::Protocol::SmartAudio21, power & 0x7F);
+                break;
+            case SMARTAUDIO_SPEC_PROTOCOL_v2:
+                vtx.confirm_custom_power(JTPower::Protocol::SmartAudio2, power);
+                break;
+            default:
+                vtx.confirm_custom_power(JTPower::Protocol::SmartAudio1, power);
+                break;
+            }
+            break;
+        }
         switch (_protocol_version) {
         case SMARTAUDIO_SPEC_PROTOCOL_v21:
             if (vtx.get_configured_power_dbm() != power) {

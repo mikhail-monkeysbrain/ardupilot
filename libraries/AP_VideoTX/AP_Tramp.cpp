@@ -127,7 +127,11 @@ char AP_Tramp::handle_response(void)
                 vtx.set_channel(channel);
             }
 
-            vtx.set_power_mw(power);
+            if (vtx.custom_power_requested()) {
+                vtx.confirm_custom_power(JTPower::Protocol::Tramp, power);
+            } else {
+                vtx.set_power_mw(power);
+            }
             if (pit_mode) {
                 vtx.set_options(vtx.get_options() | uint8_t(AP_VideoTX::VideoOptions::VTX_PITMODE));
             } else {
@@ -351,10 +355,13 @@ void AP_Tramp::process_requests()
                     send_command('F', target_freq);
                     configUpdateRequired = true;
                 }
-            } else if (!is_race_lock_enabled() && vtx.update_power()) {
+            } else if (!is_race_lock_enabled() && (vtx.update_power() || vtx.custom_power_pending(JTPower::Protocol::Tramp))) {
                 debug("Updating power to %umw\n", vtx.get_configured_power_mw());
                 // Power can be and needs to be updated, issue request
-                send_command('P', vtx.get_configured_power_mw());
+                uint16_t wire = vtx.get_configured_power_mw();
+                if (!vtx.custom_power_requested() || vtx.custom_power_wire(JTPower::Protocol::Tramp, wire)) {
+                    send_command('P', wire);
+                }
 
                 // Set flag
                 configUpdateRequired = true;
@@ -486,7 +493,7 @@ void AP_Tramp::update()
                 set_frequency(target_freq);
             }
         }
-        else if (vtx.update_power()) {
+        else if (vtx.update_power() || vtx.custom_power_pending(JTPower::Protocol::Tramp)) {
             retry_count = VTX_TRAMP_MAX_RETRIES;
         }
         else if (vtx.update_options()) {
